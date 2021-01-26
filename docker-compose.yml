@@ -1,0 +1,16 @@
+---
+version: "3"
+
+services:
+  doni:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    volumes:
+      - ./doni:/work/doni:ro
+    environment:
+      FLASK_ENV: development
+      DONI_SETTINGS: /work/doni/config/development.py
+      GUNICORN_ARGS: --reload
+    ports:
+      - "127.0.0.1:8001:8001"
