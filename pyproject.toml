@@ -16,10 +16,22 @@ version = "0.0.1"
 python = "^3.8"
 Flask = "^1.1.2"
 gunicorn = "^20.0.4"
+"oslo.config" = "^8.4.0"
+"oslo.db" = "^8.5.0"
+stevedore = "^3.3.0"
+"oslo.log" = "^4.4.0"
+osprofiler = "^3.4.0"
+"oslo.service" = "^2.4.0"
+"oslo.messaging" = "^12.7.0"
+"oslo.versionedobjects" = "^2.4.0"
+alembic = "^1.5.4"
 
 [tool.poetry.dev-dependencies]
 black = "^20.8b1"
 flake8 = "^3.8.4"
+
+[tool.poetry.scripts]
+doni-dbsync = "doni.cmd.dbsync:main"
 
 [build-system]
 build-backend = "poetry.core.masonry.api"

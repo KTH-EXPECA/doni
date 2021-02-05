@@ -3,15 +3,17 @@ import os
 
 from flask import Flask
 
+from doni.conf import CONF
+
 
 def create_app(test_config=None):
     app = Flask(__name__, instance_relative_config=True)
 
-    if test_config is None:
-        app.config.from_object("doni.config")
-        app.config.from_envvar("DONI_SETTINGS")
-    else:
+    if test_config:
         app.config.from_mapping(test_config)
+    else:
+        # TODO: set anything relevant from CONF
+        pass
 
     try:
         os.makedirs(app.instance_path)
