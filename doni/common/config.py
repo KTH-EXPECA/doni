@@ -6,10 +6,11 @@ from doni import __version__
 
 
 def parse_args(argv, default_config_files=None):
-    rpc.set_defaults(control_exchange='doni')
+    """Initialize configuration defaults from argv.
+    """
     cfg.CONF(argv[1:],
              project='doni',
              version=__version__,
              default_config_files=default_config_files)
-    rpc.init(cfg.CONF)
     profiler_opts.set_defaults(cfg.CONF)
+    rpc.set_defaults(control_exchange='doni')

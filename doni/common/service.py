@@ -2,12 +2,15 @@ from oslo_log import log
 from oslo_service import service
 
 from doni.common import config
+from doni.common import rpc
 from doni.conf import CONF
 from doni.conf import opts
 from doni import objects
 
 
 def prepare_service(argv=None):
+    """Initialize a service.
+    """
     argv = [] if argv is None else argv
     log.register_options(CONF)
     opts.update_opt_defaults()
@@ -16,6 +19,7 @@ def prepare_service(argv=None):
     # it does not properly parse the options from config file and uses defaults
     # from oslo_log
     log.setup(CONF, 'ironic')
+    rpc.init(CONF)
     objects.register_all()
 
 
