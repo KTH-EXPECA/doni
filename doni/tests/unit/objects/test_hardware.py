@@ -10,12 +10,26 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from unittest import mock
+import contextlib
 
-from doni.common import context
 from doni.objects.hardware import Hardware
-from doni.tests.unit.db import base as db_base
 from doni.tests.unit.db import utils as db_utils
+
+
+@contextlib.contextmanager
+def fake_hardware_list():
+    def _make_fake_hardware(idx):
+        fake_hw = db_utils.get_test_hardware(name=f"fake_name_{idx}")
+        # ID will be auto-assigned by DB
+        fake_hw.pop("id")
+        hw = Hardware(**fake_hw)
+        hw.create()
+        return hw
+    hardwares = [_make_fake_hardware(i) for i in range(3)]
+    yield [hw.as_dict() for hw in hardwares]
+    for hw in hardwares:
+        hw.destroy()
+
 
 def test_create_hardware(fake_hardware):
     hardware = Hardware(**fake_hardware)
@@ -24,12 +38,13 @@ def test_create_hardware(fake_hardware):
     assert fake_hardware['name'] == hardware.name
     assert fake_hardware['project_id'] == hardware.project_id
 
-def test_save_hardware(context, fake_hardware):
-    hardware = Hardware(context=context, **fake_hardware)
-    hardware.obj_reset_changes()
-    hardware.name = 'new_fake_name'
-    hardware.save()
-    assert hardware.name == 'new_fake_name'
+def test_save_hardware(context):
+    with fake_hardware_list() as hardwares:
+        hardware = Hardware(context=context, **hardwares[0])
+        hardware.obj_reset_changes()
+        hardware.name = 'new_fake_name'
+        hardware.save()
+        assert hardware.name == 'new_fake_name'
 
 # def test_destroy(self):
 #     hardware = Hardware(context=self.context,

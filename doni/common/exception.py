@@ -101,6 +101,11 @@ class DoniException(Exception):
         return str(self.args[0])
 
 
+class Invalid(DoniException):
+    _msg_fmt = ("Unacceptable parameters.")
+    code = http_client.BAD_REQUEST
+
+
 class NotFound(DoniException):
     _msg_fmt = ("Resource could not be found.")
     code = http_client.NOT_FOUND
@@ -109,6 +114,10 @@ class NotFound(DoniException):
 class Conflict(DoniException):
     _msg_fmt = ("Conflict.")
     code = http_client.CONFLICT
+
+
+class InvalidParameterValue(Invalid):
+    _msg_fmt = "%(msg)s"
 
 
 class HardwareNotFound(NotFound):

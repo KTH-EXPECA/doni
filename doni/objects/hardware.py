@@ -1,15 +1,3 @@
-#    Licensed under the Apache License, Version 2.0 (the "License"); you may
-#    not use this file except in compliance with the License. You may obtain
-#    a copy of the License at
-#
-#         http://www.apache.org/licenses/LICENSE-2.0
-#
-#    Unless required by applicable law or agreed to in writing, software
-#    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-#    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-#    License for the specific language governing permissions and limitations
-#    under the License.
-
 from doni.db import api as db_api
 from doni.objects import base
 from doni.objects import fields as object_fields
@@ -31,9 +19,9 @@ class Hardware(base.DoniObject):
     def create(self, context=None):
         """Create a Hardware record in the DB.
         :param context: security context.
-        :raises: HardwareDuplicateName if a deploy template with the same
+        :raises: HardwareDuplicateName if a hardware with the same
             name exists.
-        :raises: HardwareAlreadyExists if a deploy template with the same
+        :raises: HardwareAlreadyExists if a hardware with the same
             UUID exists.
         """
         values = self.obj_get_changes()
@@ -45,9 +33,9 @@ class Hardware(base.DoniObject):
         Column-wise updates will be made based on the result of
         self.what_changed().
         :param context: Security context.
-        :raises: HardwareDuplicateName if a deploy template with the same
+        :raises: HardwareDuplicateName if a hardware with the same
             name exists.
-        :raises: HardwareNotFound if the deploy template does not exist.
+        :raises: HardwareNotFound if the hardware does not exist.
         """
         updates = self.obj_get_changes()
         db_hardware = self.dbapi.update_hardware(self.uuid, updates)
@@ -56,18 +44,18 @@ class Hardware(base.DoniObject):
     def destroy(self):
         """Delete the Hardware from the DB.
         :param context: security context..
-        :raises: HardwareNotFound if the deploy template no longer
+        :raises: HardwareNotFound if the hardware no longer
             appears in the database.
         """
-        self.dbapi.destroy_hardware(self.id)
+        self.dbapi.destroy_hardware(self.uuid)
         self.obj_reset_changes()
 
     @classmethod
     def get_by_id(cls, context, hardware_id):
-        """Find a deploy template based on its integer ID.
+        """Find a hardware based on its integer ID.
         :param context: security context.
-        :param hardware_id: The ID of a deploy template.
-        :raises: HardwareNotFound if the deploy template no longer
+        :param hardware_id: The ID of a hardware.
+        :raises: HardwareNotFound if the hardware no longer
             appears in the database.
         :returns: a :class:`Hardware` object.
         """

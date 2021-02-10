@@ -73,6 +73,39 @@ class Connection(object):
                 raise exception.HardwareAlreadyExists(uuid=values['uuid'])
         return hardware
 
+    @oslo_db_api.retry_on_deadlock
+    def update_hardware(self, hardware_uuid, values):
+        if 'uuid' in values:
+            msg = ("Cannot overwrite UUID for existing Hardware.")
+            raise exception.InvalidParameterValue(msg=msg)
+
+        with _session_for_write():
+            query = model_query(models.Hardware).filter_by(uuid=hardware_uuid)
+            try:
+                count = query.update(values)
+                if count != 1:
+                    raise exception.HardwareNotFound(hardware=hardware_uuid)
+            except db_exc.DBDuplicateEntry as exc:
+                if 'name' in exc.columns:
+                    raise exception.HardwareDuplicateName(name=values['name'])
+                print(exc.columns)
+                raise exception.HardwareAlreadyExists(uuid=values['uuid'])
+            return query.one()
+
+    @oslo_db_api.retry_on_deadlock
+    def destroy_hardware(self, hardware_uuid):
+        with _session_for_write():
+            query = model_query(models.Hardware).filter_by(uuid=hardware_uuid)
+            try:
+                _ = query.one()
+            except NoResultFound:
+                raise exception.HardwareNotFound(hardware=hardware_uuid)
+
+            # NOTE: any attached relations that should be cascade-deleted should
+            # be deleted here, before the parent Hardware record is deleted.
+
+            query.delete()
+
     def get_hardware_by_id(self, hardware_id):
         query = model_query(models.Hardware).filter_by(id=hardware_id)
         try:
