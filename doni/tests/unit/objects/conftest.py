@@ -3,7 +3,7 @@ import pytest
 
 from doni.db import migration
 from doni.db import models
-from doni.tests.unit.db import utils
+from doni.tests.unit.objects import utils
 
 
 @pytest.fixture(scope="module", autouse=True)

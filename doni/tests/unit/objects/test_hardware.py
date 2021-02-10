@@ -15,7 +15,7 @@ import pytest
 from doni.common import exception
 from doni.db import api as db_api
 from doni.objects.hardware import Hardware
-from doni.tests.unit.db import utils as db_utils
+from doni.tests.unit.objects import utils as db_utils
 
 
 HARDWARE_COUNTER = 0
