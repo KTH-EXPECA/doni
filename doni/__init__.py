@@ -1,9 +1,15 @@
+from importlib.metadata import version
 import logging
 import os
 
 from flask import Flask
 
 from doni.conf import CONF
+
+try:
+    __version__ = version(__name__)
+except:
+    pass
 
 
 def create_app(test_config=None):

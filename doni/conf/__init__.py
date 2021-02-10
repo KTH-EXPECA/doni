@@ -1,5 +1,7 @@
 from oslo_config import cfg
 
+from doni.conf import default
+
 CONF = cfg.CONF
 
-# agent.register_opts(CONF)
+default.register_opts(CONF)

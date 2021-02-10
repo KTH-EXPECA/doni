@@ -19,9 +19,8 @@ import fixtures
 from oslo_config import cfg
 from oslo_db.sqlalchemy import enginefacade
 
-from doni.db import api as dbapi
-from doni.db.sqlalchemy import migration
-from doni.db.sqlalchemy import models
+from doni.db import migration
+from doni.db import models
 from doni.tests import base
 
 
@@ -64,9 +63,7 @@ class Database(fixtures.Fixture):
 class DbTestCase(base.TestCase):
 
     def setUp(self):
-        super(DbTestCase, self).setUp()
-
-        self.dbapi = dbapi.get_instance()
+        super().setUp()
 
         global _DB_CACHE
         if not _DB_CACHE:

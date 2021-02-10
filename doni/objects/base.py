@@ -34,8 +34,6 @@ class DoniObject(object_base.VersionedObject):
     OBJ_SERIAL_NAMESPACE = 'doni_object'
     OBJ_PROJECT_NAMESPACE = 'doni'
 
-    # TODO(lintan) Refactor these fields and create PersistentObject and
-    # TimeStampObject like Nova when it is necessary.
     fields = {
         'created_at': object_fields.DateTimeField(nullable=True),
         'updated_at': object_fields.DateTimeField(nullable=True),
@@ -100,3 +98,7 @@ class DoniObjectListBase(object_base.ObjectListBase):
         The returned object is JSON-serialisable.
         """
         return {'objects': [obj.as_dict() for obj in self.objects]}
+
+
+class DoniObjectRegistry(object_base.VersionedObjectRegistry):
+    pass

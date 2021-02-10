@@ -5,7 +5,7 @@ from oslo_log import log
 import doni.conf
 
 _default_opt_lists = [
-    # doni.conf.default.api_opts,
+    doni.conf.default.path_opts,
 ]
 
 _opts = [

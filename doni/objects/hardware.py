@@ -10,13 +10,12 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from oslo_versionedobjects import base as object_base
-
 from doni.db import api as db_api
 from doni.objects import base
 from doni.objects import fields as object_fields
 
-class Hardware(base.DoniObject, object_base.VersionedObjectDictCompat):
+@base.DoniObjectRegistry.register
+class Hardware(base.DoniObject):
     # Version 1.0: Initial version
     VERSION = '1.0'
 
@@ -72,35 +71,35 @@ class Hardware(base.DoniObject, object_base.VersionedObjectDictCompat):
             appears in the database.
         :returns: a :class:`Hardware` object.
         """
-        db_template = cls.dbapi.get_hardware_by_id(hardware_id)
-        template = cls._from_db_object(context, cls(), db_template)
-        return template
+        db_hardware = cls.dbapi.get_hardware_by_id(hardware_id)
+        hardware = cls._from_db_object(context, cls(), db_hardware)
+        return hardware
 
     @classmethod
     def get_by_uuid(cls, context, uuid):
-        """Find a deploy template based on its UUID.
+        """Find a hardware based on its UUID.
         :param context: security context..
-        :param uuid: The UUID of a deploy template.
-        :raises: HardwareNotFound if the deploy template no longer
+        :param uuid: The UUID of a hardware.
+        :raises: HardwareNotFound if the hardware no longer
             appears in the database.
         :returns: a :class:`Hardware` object.
         """
-        db_template = cls.dbapi.get_deploy_template_by_uuid(uuid)
-        template = cls._from_db_object(context, cls(), db_template)
-        return template
+        db_hardware = cls.dbapi.get_hardware_by_uuid(uuid)
+        hardware = cls._from_db_object(context, cls(), db_hardware)
+        return hardware
 
     @classmethod
     def get_by_name(cls, context, name):
-        """Find a deploy template based on its name.
+        """Find a hardware based on its name.
         :param context: security context..
-        :param name: The name of a deploy template.
-        :raises: HardwareNotFound if the deploy template no longer
+        :param name: The name of a hardware.
+        :raises: HardwareNotFound if the hardware no longer
             appears in the database.
         :returns: a :class:`Hardware` object.
         """
-        db_template = cls.dbapi.get_deploy_template_by_name(name)
-        template = cls._from_db_object(context, cls(), db_template)
-        return template
+        db_hardware = cls.dbapi.get_hardware_by_name(name)
+        hardware = cls._from_db_object(context, cls(), db_hardware)
+        return hardware
 
     @classmethod
     def list(cls, context, limit=None, marker=None, sort_key=None,
@@ -113,6 +112,6 @@ class Hardware(base.DoniObject, object_base.VersionedObjectDictCompat):
         :param sort_dir: direction to sort. "asc" or "desc".
         :returns: a list of :class:`Hardware` objects.
         """
-        db_templates = cls.dbapi.get_deploy_template_list(
+        db_templates = cls.dbapi.get_hardware_list(
             limit=limit, marker=marker, sort_key=sort_key, sort_dir=sort_dir)
         return cls._from_db_object_list(context, db_templates)

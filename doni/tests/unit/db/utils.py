@@ -16,6 +16,8 @@
 
 from oslo_utils import uuidutils
 
+from doni.db import api as db_api
+
 
 def get_test_hardware(**kw):
     default_uuid = uuidutils.generate_uuid()
@@ -27,3 +29,21 @@ def get_test_hardware(**kw):
         'uuid': kw.get('uuid', default_uuid),
         'project_id': kw.get('project_id', 'fake_project_id'),
     }
+
+def create_test_hardware(**kw):
+    """Create test hardware entry in DB and return a Hardware DB object.
+
+    Function to be used to create test Hardware objects in the database.
+
+    :param kw: kwargs with overriding values for hardware's attributes.
+    :returns: test Hardware DB object.
+    """
+    hardware = get_test_hardware(**kw)
+    # Let DB generate an ID if one isn't specified explicitly.
+    # Creating a hardware with tags or traits will raise an exception. If tags or
+    # traits are not specified explicitly just delete them.
+    for field in {'id'}:
+        if field not in kw:
+            del hardware[field]
+    dbapi = db_api.get_instance()
+    return dbapi.create_hardware(hardware)
