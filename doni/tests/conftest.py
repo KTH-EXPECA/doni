@@ -20,7 +20,6 @@ def config():
     cfg_fixture.setUp()
     cfg_fixture.config(use_stderr=False, tempdir=tempfile.tempdir)
     yield cfg_fixture
-    print('Cleaning up cfg fixture')
     cfg_fixture.cleanUp()
 
 

@@ -3,8 +3,7 @@ import threading
 from oslo_db import api as oslo_db_api
 from oslo_db import exception as db_exc
 from oslo_db.sqlalchemy import enginefacade
-# db_utils have some utility functions that are useful
-# from oslo_db.sqlalchemy import utils as db_utils
+from oslo_db.sqlalchemy import utils as db_utils
 from oslo_log import log
 from oslo_utils import uuidutils
 from osprofiler import sqlalchemy as osp_sqlalchemy
@@ -39,6 +38,23 @@ def _wrap_session(session):
     if CONF.profiler.enabled and CONF.profiler.trace_sqlalchemy:
         session = osp_sqlalchemy.wrap_session(sa, session)
     return session
+
+
+def _paginate_query(model, limit=None, marker=None, sort_key=None,
+                    sort_dir=None, query=None):
+    if not query:
+        query = model_query(model)
+    sort_keys = ['id']
+    if sort_key and sort_key not in sort_keys:
+        sort_keys.insert(0, sort_key)
+    try:
+        query = db_utils.paginate_query(query, model, limit, sort_keys,
+                                        marker=marker, sort_dir=sort_dir)
+    except db_exc.InvalidSortKey:
+        raise exception.InvalidParameterValue(
+            ('The sort_key value "%(key)s" is an invalid field for sorting')
+            % {'key': sort_key})
+    return query.all()
 
 
 def model_query(model, *args, **kwargs):
@@ -79,8 +95,8 @@ class Connection(object):
             msg = ("Cannot overwrite UUID for existing Hardware.")
             raise exception.InvalidParameterValue(msg=msg)
 
-        with _session_for_write():
-            query = model_query(models.Hardware).filter_by(uuid=hardware_uuid)
+        with _session_for_write() as session:
+            query = session.query(models.Hardware).filter_by(uuid=hardware_uuid)
             try:
                 count = query.update(values)
                 if count != 1:
@@ -94,8 +110,8 @@ class Connection(object):
 
     @oslo_db_api.retry_on_deadlock
     def destroy_hardware(self, hardware_uuid):
-        with _session_for_write():
-            query = model_query(models.Hardware).filter_by(uuid=hardware_uuid)
+        with _session_for_write() as session:
+            query = session.query(models.Hardware).filter_by(uuid=hardware_uuid)
             try:
                 _ = query.one()
             except NoResultFound:
@@ -126,3 +142,8 @@ class Connection(object):
             return query.one()
         except NoResultFound:
             raise exception.HardwareNotFound(node=hardware_name)
+
+    def get_hardware_list(self, limit=None, marker=None, sort_key=None,
+                          sort_dir=None):
+        return _paginate_query(
+            models.Hardware, limit, marker, sort_key, sort_dir)

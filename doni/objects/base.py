@@ -14,6 +14,11 @@
 
 """Doni common internal object model"""
 
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from doni.db.models import DoniBase
+    from doni.common.context import RequestContext
+
 from oslo_log import log
 from oslo_versionedobjects import base as object_base
 
@@ -41,9 +46,9 @@ class DoniObject(object_base.VersionedObject):
 
     def as_dict(self):
         """Return the object represented as a dict.
+
         The returned object is JSON-serialisable.
         """
-
         def _attr_as_dict(field):
             """Return an attribute as a dict, handling nested objects."""
             attr = getattr(self, field)
@@ -55,25 +60,38 @@ class DoniObject(object_base.VersionedObject):
                     for k in self.fields
                     if self.obj_attr_is_set(k))
 
-    def _set_from_db_object(self, context, db_object, fields=None):
+    def _set_from_db_object(self, context: "RequestContext",
+                            db_object: "DoniBase", fields: "list[str]"=None):
         """Sets object fields.
-        :param context: security context
-        :param db_object: A DB entity of the object
-        :param fields: list of fields to set on obj from values from db_object.
+
+        Args:
+            context (RequestContext): security context
+            db_object (DoniBase): A DB entity of the object
+            fields (list[str]): A list of fields to set on obj from values from
+                db_object.
         """
         fields = fields or self.fields
         for field in fields:
             setattr(self, field, db_object[field])
 
     @staticmethod
-    def _from_db_object(context, obj, db_object, fields=None):
+    def _from_db_object(context: "RequestContext", obj: "DoniObject",
+                        db_object: "DoniBase", fields: "list[str]"=None):
         """Converts a database entity to a formal object.
-        :param context: security context
-        :param obj: An object of the class.
-        :param db_object: A DB entity of the object
-        :param fields: list of fields to set on obj from values from db_object.
-        :return: The object of the class with the database entity added
-        :raises: ovo_exception.IncompatibleObjectVersion
+
+        Args:
+            context (RequestContext): Security context
+            obj (DoniObject): An object of the class.
+            db_object (DoniBase): A DB entity of the object
+            fields (list[str]): List of fields to set on obj from values from
+                db_object.
+
+        Returns:
+            The object of the class with the database entity added.
+
+        Raises:
+            ovo_exception.IncompatibleObjectVersion: if the object and DB model
+                don't have compatible versions.
         """
         obj._set_from_db_object(context, db_object, fields)
 
@@ -90,6 +108,25 @@ class DoniObject(object_base.VersionedObject):
 
         return obj
 
+    @classmethod
+    def _from_db_object_list(cls, context: "RequestContext",
+                             db_objects: "list[DoniBase]"):
+        """Returns objects corresponding to database entities.
+
+        Returns a list of formal objects of this class that correspond to
+        the list of database entities.
+
+        Args:
+            cls (class): The VersionedObject class of the desired object.
+            context (RequestContext): Security context.
+            db_objects (list[DoniBase]): List of DB models of the object.
+
+        Returns:
+            A list of objects corresponding to the database entities.
+        """
+        return [cls._from_db_object(context, cls(), db_obj)
+                for db_obj in db_objects]
+
 
 class DoniObjectListBase(object_base.ObjectListBase):
 
@@ -101,4 +138,10 @@ class DoniObjectListBase(object_base.ObjectListBase):
 
 
 class DoniObjectRegistry(object_base.VersionedObjectRegistry):
+    """Registry to hold all Doni VersionedObjects.
+
+    Each VersionedObject must be registered with the registry via the
+    @DoniObjectRegistry.register decorator in order to set up the proxy
+    attr setters and getters that make the object functional.
+    """
     pass
