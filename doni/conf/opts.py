@@ -21,7 +21,7 @@ def list_opts():
     the list is a tuple. The first element is the name of the group, the
     second element is the options.
 
-    The function is discoverable via the 'ironic' entry point under the
+    The function is discoverable via the 'doni' entry point under the
     'oslo.config.opts' namespace.
 
     The function is used by Oslo sample config file generator to discover the

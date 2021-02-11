@@ -25,6 +25,8 @@ osprofiler = "^3.4.0"
 "oslo.messaging" = "^12.7.0"
 "oslo.versionedobjects" = "^2.4.0"
 alembic = "^1.5.4"
+"oslo.middleware" = "^4.1.1"
+keystonemiddleware = "^9.2.0"
 
 [tool.poetry.dev-dependencies]
 black = "^20.8b1"
@@ -39,7 +41,7 @@ doni-dbsync = "doni.cmd.dbsync:main"
 doni = "doni.conf.opts:list_opts"
 
 [tool.poetry.plugins."oslo.config.opts.defaults"]
-doni = "ironic.conf.opts:update_opt_defaults"
+doni = "doni.conf.opts:update_opt_defaults"
 
 [tool.poetry.plugins."doni.database.migration_backend"]
 sqlalchemy = "doni.db.migration"

@@ -18,7 +18,7 @@ def prepare_service(argv=None):
     # NOTE(vdrok): We need to setup logging after argv was parsed, otherwise
     # it does not properly parse the options from config file and uses defaults
     # from oslo_log
-    log.setup(CONF, 'ironic')
+    log.setup(CONF, 'doni')
     rpc.init(CONF)
     objects.register_all()
 

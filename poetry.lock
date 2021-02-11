@@ -157,6 +157,18 @@ DNSSEC = ["pycryptodome", "ecdsa (>=0.13)"]
 IDNA = ["idna (>=2.1)"]
 
 [[package]]
+name = "dogpile.cache"
+version = "1.1.2"
+description = "A caching front-end based on the Dogpile lock."
+category = "main"
+optional = false
+python-versions = ">=3.6"
+
+[package.dependencies]
+decorator = ">=4.0.0"
+stevedore = ">=3.0.0"
+
+[[package]]
 name = "eventlet"
 version = "0.30.1"
 description = "Highly concurrent networking library"
@@ -321,6 +333,57 @@ MarkupSafe = ">=0.23"
 i18n = ["Babel (>=0.8)"]
 
 [[package]]
+name = "keystoneauth1"
+version = "4.3.0"
+description = "Authentication Library for OpenStack Identity"
+category = "main"
+optional = false
+python-versions = ">=3.6"
+
+[package.dependencies]
+iso8601 = ">=0.1.11"
+os-service-types = ">=1.2.0"
+pbr = ">=2.0.0,<2.1.0 || >2.1.0"
+requests = ">=2.14.2"
+six = ">=1.10.0"
+stevedore = ">=1.20.0"
+
+[package.extras]
+betamax = ["betamax (>=0.7.0)", "fixtures (>=3.0.0)", "mock (>=2.0.0)"]
+kerberos = ["requests-kerberos (>=0.8.0)"]
+oauth1 = ["oauthlib (>=0.6.2)"]
+saml2 = ["lxml (>=4.2.0)"]
+test = ["PyYAML (>=3.12)", "bandit (>=1.1.0,<1.6.0)", "betamax (>=0.7.0)", "coverage (>=4.0,!=4.4)", "fixtures (>=3.0.0)", "flake8-docstrings (==0.2.1.post1)", "flake8-import-order (>=0.17.1)", "hacking (>=3.0.1,<3.1.0)", "lxml (>=4.2.0)", "oauthlib (>=0.6.2)", "oslo.config (>=5.2.0)", "oslo.utils (>=3.33.0)", "oslotest (>=3.2.0)", "pycodestyle (>=2.0.0,<2.6.0)", "reno (>=3.1.0)", "requests-kerberos (>=0.8.0)", "requests-mock (>=1.2.0)", "stestr (>=1.0.0)", "testresources (>=2.0.0)", "testtools (>=2.2.0)"]
+
+[[package]]
+name = "keystonemiddleware"
+version = "9.2.0"
+description = "Middleware for OpenStack Identity"
+category = "main"
+optional = false
+python-versions = "*"
+
+[package.dependencies]
+keystoneauth1 = ">=3.12.0"
+"oslo.cache" = ">=1.26.0"
+"oslo.config" = ">=5.2.0"
+"oslo.context" = ">=2.19.2"
+"oslo.i18n" = ">=3.15.3"
+"oslo.log" = ">=3.36.0"
+"oslo.serialization" = ">=2.18.0,<2.19.1 || >2.19.1"
+"oslo.utils" = ">=3.33.0"
+pbr = ">=2.0.0,<2.1.0 || >2.1.0"
+pycadf = ">=1.1.0,<2.0.0 || >2.0.0"
+python-keystoneclient = ">=3.20.0"
+requests = ">=2.14.2"
+six = ">=1.10.0"
+WebOb = ">=1.7.1"
+
+[package.extras]
+audit_notifications = ["oslo.messaging (>=5.29.0)"]
+test = ["WebTest (>=2.0.27)", "bandit (>=1.1.0,!=1.6.0)", "coverage (>=4.0,!=4.4)", "cryptography (>=3.0)", "fixtures (>=3.0.0)", "flake8-docstrings (==0.2.1.post1)", "hacking (>=3.0,<4.0.0)", "oslo.messaging (>=5.29.0)", "oslotest (>=3.2.0)", "python-memcached (>=1.59)", "requests-mock (>=1.2.0)", "stestr (>=2.0.0)", "stevedore (>=1.20.0)", "testresources (>=2.0.0)", "testtools (>=2.2.0)"]
+
+[[package]]
 name = "kombu"
 version = "5.0.2"
 description = "Messaging library for Python."
@@ -417,6 +480,38 @@ description = "Portable network interface information."
 category = "main"
 optional = false
 python-versions = "*"
+
+[[package]]
+name = "os-service-types"
+version = "1.7.0"
+description = "Python library for consuming OpenStack sevice-types-authority data"
+category = "main"
+optional = false
+python-versions = "*"
+
+[package.dependencies]
+pbr = ">=2.0.0,<2.1.0 || >2.1.0"
+
+[[package]]
+name = "oslo.cache"
+version = "2.7.0"
+description = "Cache storage for OpenStack projects."
+category = "main"
+optional = false
+python-versions = ">=3.6"
+
+[package.dependencies]
+"dogpile.cache" = ">=1.1.2"
+"oslo.config" = ">=8.1.0"
+"oslo.i18n" = ">=5.0.0"
+"oslo.log" = ">=4.2.1"
+"oslo.utils" = ">=4.2.0"
+
+[package.extras]
+dogpile = ["python-memcached (>=1.56)"]
+etcd3gw = ["etcd3gw (>=0.2.0)"]
+mongo = ["pymongo (>=3.0.2,!=3.1)"]
+test = ["bandit (>=1.6.0,<1.7.0)", "etcd3gw (>=0.2.0)", "hacking (>=3.0.1,<3.1.0)", "oslotest (>=3.2.0)", "pifpaf (>=0.10.0)", "pre-commit (>=2.6.0)", "pymemcache (>=3.4.0)", "pymongo (>=3.0.2,!=3.1)", "python-binary-memcached (>=0.29.0)", "python-memcached (>=1.56)", "stestr (>=2.0.0)"]
 
 [[package]]
 name = "oslo.concurrency"
@@ -775,6 +870,21 @@ optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
 
 [[package]]
+name = "pycadf"
+version = "3.1.1"
+description = "CADF Library"
+category = "main"
+optional = false
+python-versions = ">=3.6"
+
+[package.dependencies]
+debtcollector = ">=1.2.0"
+"oslo.config" = ">=5.2.0"
+"oslo.serialization" = ">=2.18.0,<2.19.1 || >2.19.1"
+pytz = ">=2013.6"
+six = ">=1.10.0"
+
+[[package]]
 name = "pycodestyle"
 version = "2.6.0"
 description = "Python style guide checker"
@@ -845,6 +955,26 @@ description = "Programmatically open an editor, capture the result."
 category = "main"
 optional = false
 python-versions = "*"
+
+[[package]]
+name = "python-keystoneclient"
+version = "4.2.0"
+description = "Client Library for OpenStack Identity"
+category = "main"
+optional = false
+python-versions = ">=3.6"
+
+[package.dependencies]
+debtcollector = ">=1.2.0"
+keystoneauth1 = ">=3.4.0"
+"oslo.config" = ">=5.2.0"
+"oslo.i18n" = ">=3.15.3"
+"oslo.serialization" = ">=2.18.0,<2.19.1 || >2.19.1"
+"oslo.utils" = ">=3.33.0"
+pbr = ">=2.0.0,<2.1.0 || >2.1.0"
+requests = ">=2.14.2"
+six = ">=1.10.0"
+stevedore = ">=1.20.0"
 
 [[package]]
 name = "python-mimeparse"
@@ -1191,7 +1321,7 @@ test = ["gevent (>=20.6.2)"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.8"
-content-hash = "de7e8ffd57b6d1cfc81ad75199f303ed7c3e3f7c8127e4ff68ed62d74728ed83"
+content-hash = "8a3b5818f14dfd9bf018c63ba32565a0f332d3936fa6450563f5463c50687db3"
 
 [metadata.files]
 alembic = [
@@ -1251,6 +1381,10 @@ decorator = [
 dnspython = [
     {file = "dnspython-1.16.0-py2.py3-none-any.whl", hash = "sha256:f69c21288a962f4da86e56c4905b49d11aba7938d3d740e80d9e366ee4f1632d"},
     {file = "dnspython-1.16.0.zip", hash = "sha256:36c5e8e38d4369a08b6780b7f27d790a292b2b08eea01607865bf0936c558e01"},
+]
+"dogpile.cache" = [
+    {file = "dogpile.cache-1.1.2-py3-none-any.whl", hash = "sha256:b13740e8100ed459928ac50d5ba9a4512934adecd6c0b9af93978789184076f4"},
+    {file = "dogpile.cache-1.1.2.tar.gz", hash = "sha256:2134464672a3deb7ef1366a8691726686d8c62540e4208f1a40c9aaa1a0b6a45"},
 ]
 eventlet = [
     {file = "eventlet-0.30.1-py2.py3-none-any.whl", hash = "sha256:a58caa60ea936c967d16983f3fe7831583b1dc57ed58778cb9b329d1484b918e"},
@@ -1349,6 +1483,14 @@ itsdangerous = [
 jinja2 = [
     {file = "Jinja2-2.11.2-py2.py3-none-any.whl", hash = "sha256:f0a4641d3cf955324a89c04f3d94663aa4d638abe8f733ecd3582848e1c37035"},
     {file = "Jinja2-2.11.2.tar.gz", hash = "sha256:89aab215427ef59c34ad58735269eb58b1a5808103067f7bb9d5836c651b3bb0"},
+]
+keystoneauth1 = [
+    {file = "keystoneauth1-4.3.0-py3-none-any.whl", hash = "sha256:db438f606c098f83596749e53b1426c8e1c20d403b404bb6e38f4ecbb98f56a8"},
+    {file = "keystoneauth1-4.3.0.tar.gz", hash = "sha256:e3fa55b58f082e4d753ae3fe599f3d74c591fd9cb8286879ff532a78955163f1"},
+]
+keystonemiddleware = [
+    {file = "keystonemiddleware-9.2.0-py3-none-any.whl", hash = "sha256:921fa4f305c8070a79b04e5d106b51c481a70fdea19ed8974e9fee7cc5007695"},
+    {file = "keystonemiddleware-9.2.0.tar.gz", hash = "sha256:b6f967c3a3edc6e2ed6109368a862396df87a9ea50bd710bac21758258c2f860"},
 ]
 kombu = [
     {file = "kombu-5.0.2-py2.py3-none-any.whl", hash = "sha256:6dc509178ac4269b0e66ab4881f70a2035c33d3a622e20585f965986a5182006"},
@@ -1462,6 +1604,14 @@ netifaces = [
     {file = "netifaces-0.10.9-cp37-cp37m-win_amd64.whl", hash = "sha256:86b8a140e891bb23c8b9cb1804f1475eb13eea3dbbebef01fcbbf10fbafbee42"},
     {file = "netifaces-0.10.9.tar.gz", hash = "sha256:2dee9ffdd16292878336a58d04a20f0ffe95555465fee7c9bd23b3490ef2abf3"},
 ]
+os-service-types = [
+    {file = "os-service-types-1.7.0.tar.gz", hash = "sha256:31800299a82239363995b91f1ebf9106ac7758542a1e4ef6dc737a5932878c6c"},
+    {file = "os_service_types-1.7.0-py2.py3-none-any.whl", hash = "sha256:0505c72205690910077fb72b88f2a1f07533c8d39f2fe75b29583481764965d6"},
+]
+"oslo.cache" = [
+    {file = "oslo.cache-2.7.0-py3-none-any.whl", hash = "sha256:4f705eea0702609537a3095f4e8011f000d8d98a45614f26271aa3a23641ced2"},
+    {file = "oslo.cache-2.7.0.tar.gz", hash = "sha256:aad244c3cc38b86d610166bd2979e01acb59201f173d7069fa4a0a8bcb153520"},
+]
 "oslo.concurrency" = [
     {file = "oslo.concurrency-4.4.0-py3-none-any.whl", hash = "sha256:a4e0186c246d9724f22e1125c13cae5d7838c81129e75b5ee40347e431958225"},
     {file = "oslo.concurrency-4.4.0.tar.gz", hash = "sha256:0d1d0a341ead03f4e5638c368de99baacd943011c5cceece43106885470edf69"},
@@ -1551,6 +1701,10 @@ py = [
     {file = "py-1.10.0-py2.py3-none-any.whl", hash = "sha256:3b80836aa6d1feeaa108e046da6423ab8f6ceda6468545ae8d02d9d58d18818a"},
     {file = "py-1.10.0.tar.gz", hash = "sha256:21b81bda15b66ef5e1a777a21c4dcd9c20ad3efd0b3f817e7a809035269e1bd3"},
 ]
+pycadf = [
+    {file = "pycadf-3.1.1-py3-none-any.whl", hash = "sha256:b1fa1dea7638c0f685fec9fceb94ae6409c42022c1b251d8a0d46a7ff9895f9c"},
+    {file = "pycadf-3.1.1.tar.gz", hash = "sha256:2be491143d21fa3dd1f842ce8dd4973e95f580893887960faa5c11a6190081e8"},
+]
 pycodestyle = [
     {file = "pycodestyle-2.6.0-py2.py3-none-any.whl", hash = "sha256:2295e7b2f6b5bd100585ebcb1f616591b652db8a741695b3d8f5d28bdc934367"},
     {file = "pycodestyle-2.6.0.tar.gz", hash = "sha256:c58a7d2815e0e8d7972bf1803331fb0152f867bd89adf8a01dfd55085434192e"},
@@ -1580,6 +1734,10 @@ python-editor = [
     {file = "python_editor-1.0.4-py2.7.egg", hash = "sha256:ea87e17f6ec459e780e4221f295411462e0d0810858e055fc514684350a2f522"},
     {file = "python_editor-1.0.4-py3-none-any.whl", hash = "sha256:1bf6e860a8ad52a14c3ee1252d5dc25b2030618ed80c022598f00176adc8367d"},
     {file = "python_editor-1.0.4-py3.5.egg", hash = "sha256:c3da2053dbab6b29c94e43c486ff67206eafbe7eb52dbec7390b5e2fb05aac77"},
+]
+python-keystoneclient = [
+    {file = "python-keystoneclient-4.2.0.tar.gz", hash = "sha256:0248426e483b95de395086482c077d48e45990d3b1a3e334b2ec8b2e108f5a8a"},
+    {file = "python_keystoneclient-4.2.0-py3-none-any.whl", hash = "sha256:5702f387e2a3f3645459a0850ef3e92bc8fc0eb36bd2f8ba1004a50dfed1e5f4"},
 ]
 python-mimeparse = [
     {file = "python-mimeparse-1.6.0.tar.gz", hash = "sha256:76e4b03d700a641fd7761d3cd4fdbbdcd787eade1ebfac43f877016328334f78"},

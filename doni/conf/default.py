@@ -7,15 +7,15 @@ from oslo_config import cfg
 path_opts = [
     cfg.StrOpt('pybasedir',
                default=abspath(join(dirname(__file__), '../')),
-               sample_default='/usr/lib/python/site-packages/ironic/ironic',
-               help=('Directory where the ironic python module is '
+               sample_default='/usr/lib/python/site-packages/doni/doni',
+               help=('Directory where the doni python module is '
                       'installed.')),
     cfg.StrOpt('bindir',
                default='$pybasedir/bin',
-               help=('Directory where ironic binaries are installed.')),
+               help=('Directory where doni binaries are installed.')),
     cfg.StrOpt('state_path',
                default='$pybasedir',
-               help=("Top-level directory for maintaining ironic's state.")),
+               help=("Top-level directory for maintaining doni's state.")),
 ]
 
 service_opts = [

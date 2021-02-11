@@ -54,12 +54,11 @@ def _ensure_exception_kwargs_serializable(exc_class_name, kwargs):
 
 
 class DoniException(Exception):
-    """Base Ironic Exception
-    To correctly use this class, inherit from it and define
-    a '_msg_fmt' property. That message will get printf'd
-    with the keyword arguments provided to the constructor.
-    If you need to access the message from an exception you should use
-    six.text_type(exc)
+    """Base Doni Exception
+
+    To correctly use this class, inherit from it and define a '_msg_fmt'
+    property. That message will get printf'd with the keyword arguments provided
+    to the constructor.
     """
     _msg_fmt = ("An unknown exception occurred.")
     code = http_client.INTERNAL_SERVER_ERROR
