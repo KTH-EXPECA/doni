@@ -127,21 +127,21 @@ class Connection(object):
         try:
             return query.one()
         except NoResultFound:
-            raise exception.HardwareNotFound(node=hardware_id)
+            raise exception.HardwareNotFound(hardware=hardware_id)
 
     def get_hardware_by_uuid(self, hardware_uuid):
         query = model_query(models.Hardware).filter_by(uuid=hardware_uuid)
         try:
             return query.one()
         except NoResultFound:
-            raise exception.HardwareNotFound(node=hardware_uuid)
+            raise exception.HardwareNotFound(hardware=hardware_uuid)
 
     def get_hardware_by_name(self, hardware_name):
         query = model_query(models.Hardware).filter_by(name=hardware_name)
         try:
             return query.one()
         except NoResultFound:
-            raise exception.HardwareNotFound(node=hardware_name)
+            raise exception.HardwareNotFound(hardware=hardware_name)
 
     def get_hardware_list(self, limit=None, marker=None, sort_key=None,
                           sort_dir=None):

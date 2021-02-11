@@ -66,7 +66,7 @@ class Hardware(base.DoniObject):
     @classmethod
     def get_by_uuid(cls, context, uuid):
         """Find a hardware based on its UUID.
-        :param context: security context..
+        :param context: security context.
         :param uuid: The UUID of a hardware.
         :raises: HardwareNotFound if the hardware no longer
             appears in the database.
