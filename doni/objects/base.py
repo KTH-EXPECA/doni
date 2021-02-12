@@ -22,6 +22,7 @@ if TYPE_CHECKING:
 from oslo_log import log
 from oslo_versionedobjects import base as object_base
 
+from doni import PROJECT_NAME
 from doni.objects import fields as object_fields
 
 LOG = log.getLogger(__name__)
@@ -37,7 +38,7 @@ class DoniObject(object_base.VersionedObject):
     """
 
     OBJ_SERIAL_NAMESPACE = 'doni_object'
-    OBJ_PROJECT_NAMESPACE = 'doni'
+    OBJ_PROJECT_NAMESPACE = PROJECT_NAME
 
     fields = {
         'created_at': object_fields.DateTimeField(nullable=True),

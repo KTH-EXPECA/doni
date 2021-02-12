@@ -1,11 +1,12 @@
 from oslo_log import log
 from oslo_service import service
 
+from doni import objects
+from doni import PROJECT_NAME
 from doni.common import config
 from doni.common import rpc
 from doni.conf import CONF
 from doni.conf import opts
-from doni import objects
 
 
 def prepare_service(argv=None):
@@ -18,7 +19,7 @@ def prepare_service(argv=None):
     # NOTE(vdrok): We need to setup logging after argv was parsed, otherwise
     # it does not properly parse the options from config file and uses defaults
     # from oslo_log
-    log.setup(CONF, 'doni')
+    log.setup(CONF, PROJECT_NAME)
     rpc.init(CONF)
     objects.register_all()
 

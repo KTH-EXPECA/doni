@@ -27,6 +27,7 @@ osprofiler = "^3.4.0"
 alembic = "^1.5.4"
 "oslo.middleware" = "^4.1.1"
 keystonemiddleware = "^9.2.0"
+"oslo.policy" = "^3.6.2"
 
 [tool.poetry.dev-dependencies]
 black = "^20.8b1"
@@ -42,6 +43,12 @@ doni = "doni.conf.opts:list_opts"
 
 [tool.poetry.plugins."oslo.config.opts.defaults"]
 doni = "doni.conf.opts:update_opt_defaults"
+
+[tool.poetry.plugins."oslo.policy.enforcer"]
+doni = "doni.common.policy:get_oslo_policy_enforcer"
+
+[tool.poetry.plugins."oslo.policy.policies"]
+"doni.api" = "doni.common.policy:list_policies"
 
 [tool.poetry.plugins."doni.database.migration_backend"]
 sqlalchemy = "doni.db.migration"

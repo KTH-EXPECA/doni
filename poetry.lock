@@ -674,6 +674,24 @@ stevedore = ">=1.20.0"
 WebOb = ">=1.8.0"
 
 [[package]]
+name = "oslo.policy"
+version = "3.6.2"
+description = "Oslo Policy library"
+category = "main"
+optional = false
+python-versions = ">=3.6"
+
+[package.dependencies]
+"oslo.config" = ">=6.0.0"
+"oslo.context" = ">=2.22.0"
+"oslo.i18n" = ">=3.15.3"
+"oslo.serialization" = ">=2.18.0,<2.19.1 || >2.19.1"
+"oslo.utils" = ">=3.40.0"
+PyYAML = ">=5.1"
+requests = ">=2.14.2"
+stevedore = ">=1.20.0"
+
+[[package]]
 name = "oslo.serialization"
 version = "4.0.1"
 description = "Oslo Serialization library"
@@ -1321,7 +1339,7 @@ test = ["gevent (>=20.6.2)"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.8"
-content-hash = "8a3b5818f14dfd9bf018c63ba32565a0f332d3936fa6450563f5463c50687db3"
+content-hash = "fb1561c4b6a9b30cec6ac86b2cd2b96cea766d7ee78341badab6ed81e724fc75"
 
 [metadata.files]
 alembic = [
@@ -1643,6 +1661,10 @@ os-service-types = [
 "oslo.middleware" = [
     {file = "oslo.middleware-4.1.1-py3-none-any.whl", hash = "sha256:ce8859e6bf38d53db31ba8c1331321bfc3516cfccb53e3c651eaa9b6427b646a"},
     {file = "oslo.middleware-4.1.1.tar.gz", hash = "sha256:8f5da283618602aeed4be69fc64920b76b253000fc94e98e1a39eac34768a91e"},
+]
+"oslo.policy" = [
+    {file = "oslo.policy-3.6.2-py3-none-any.whl", hash = "sha256:763778ce732020dcc40a48d0898fa885297af48b089078cd668790e0aa54529a"},
+    {file = "oslo.policy-3.6.2.tar.gz", hash = "sha256:b6d4d8eab135b5d66d7bb853c57aee49cc7e3869438680a9e4fbfcb8fc5902a3"},
 ]
 "oslo.serialization" = [
     {file = "oslo.serialization-4.0.1-py3-none-any.whl", hash = "sha256:6ed86d8378a845a24363d036bc06aef9a5ddb5b4bbfd3478d3daedee0f2bb984"},

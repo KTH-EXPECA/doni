@@ -10,6 +10,8 @@ from werkzeug.middleware import dispatcher as wsgi_dispatcher
 from doni.api import hooks
 from doni.conf import CONF
 
+PROJECT_NAME = "doni"
+
 try:
     __version__ = version(__name__)
 except:
@@ -83,7 +85,7 @@ def create_app(test_config=None):
     # oslo_middleware healthcheck is a separate app; mount it at
     # the well-known /healthcheck endpoint.
     hc_app = healthcheck.Healthcheck.app_factory(
-        {}, oslo_config_project='doni')
+        {}, oslo_config_project=PROJECT_NAME)
     app_mounts['/healthcheck'] = hc_app
 
     app.wsgi_app = wsgi_dispatcher.DispatcherMiddleware(
