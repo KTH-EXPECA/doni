@@ -3,6 +3,7 @@ from functools import wraps
 from flask import request
 from keystonemiddleware.auth_token import AuthProtocol
 from keystonemiddleware.auth_token._request import _AuthTokenRequest
+from oslo_log import log
 from oslo_policy.policy import PolicyNotAuthorized
 
 from doni.api.utils import make_error_response
@@ -13,6 +14,9 @@ from doni.conf import CONF
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from flask import Blueprint
+
+
+LOG = log.getLogger(__name__)
 
 
 class AuthTokenFlaskMiddleware(object):
@@ -55,7 +59,21 @@ class ContextMiddleware(object):
 
 
 def route(rule, blueprint: "Blueprint"=None, **options):
-    """Decorator which validates and transforms function arguments
+    """Decorator which exposes a function as a Flask handler and handles errors.
+
+    This is essentially a combination of Flask's default ``route`` decorator
+    and some exception handling for common error cases, such as "not found"
+    or "not authorized" errors. It handles translating those errors to
+    downstream HTTP response codes gracefully.
+
+    Args:
+        rule (str): The routing rule to expose this handler on.
+        blueprint (Blueprint): The Flask blueprint to hang the route on.
+        **options: Additional options passed to the Flask ``route`` decorator.
+
+    Returns:
+        A decorated handler function, which is registered on the Flask
+        blueprint and will translate known exceptions to HTTP status codes.
     """
     def inner_function(function):
         @wraps(function)
@@ -66,5 +84,8 @@ def route(rule, blueprint: "Blueprint"=None, **options):
                 return make_error_response(str(exc), 403)
             except exception.NotFound as exc:
                 return make_error_response(str(exc), 404)
+            except Exception as exc:
+                LOG.error(f"Unhandled error on {rule}: {exc}")
+                return make_error_response("An unknown error occurred.", 500)
         return blueprint.route(rule, **options)(inner_check_args)
     return inner_function

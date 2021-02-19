@@ -64,6 +64,8 @@ FAKE_UUID = uuidutils.generate_uuid()
 ])
 def test_policy_disallow(mocker, user_auth_headers, path, req_kwargs,
                          client: "FlaskClient", database: "utils.DBFixtures"):
+    """Check that for a given handler, it properly handles authorization errors.
+    """
     database.add_hardware(uuid=FAKE_UUID)
     mock_authorize = mocker.patch("doni.api.hardware.authorize")
     mock_authorize.side_effect = PolicyNotAuthorized("fakerule", {}, {})
