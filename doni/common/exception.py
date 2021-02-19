@@ -119,6 +119,10 @@ class InvalidParameterValue(Invalid):
     _msg_fmt = "%(msg)s"
 
 
+class MissingParameterValue(Invalid):
+    _msg_fmt = "%(msg)s"
+
+
 class HardwareNotFound(NotFound):
     _msg_fmt = ("Hardware %(hardware)s could not be found.")
 

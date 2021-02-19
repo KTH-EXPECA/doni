@@ -44,6 +44,17 @@ def get_oslo_policy_enforcer():
     return get_enforcer()
 
 
-def authorize(rule, target: "DoniBase", context: "RequestContext"):
+def authorize(rule, context: "RequestContext", target: "DoniBase"=None):
+    """Check if the request is authorized according to a given rule.
+
+    Args:
+        rule (str): The policy rule.
+        context (RequestContext): The request context.
+        target (DoniBase): The target domain object, if any.
+
+    Raises:
+        PolicyNotAuthorized: If the rule is not satisfied.
+    """
+    target = target.as_dict() if target else {}
     return get_enforcer().authorize(
-        rule, target.as_dict(), context.to_policy_values(), do_raise=True)
+        rule, target, context.to_policy_values(), do_raise=True)

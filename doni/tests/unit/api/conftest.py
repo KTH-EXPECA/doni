@@ -22,17 +22,28 @@ def tokens() -> "AuthTokenFixture":
     ksm_fixture.cleanUp()
 
 
-@pytest.fixture
-def user_token(tokens: "AuthTokenFixture") -> str:
-    # Creates a project scoped V3 token, with 1 entry in the catalog
-    token = ksa_fixture.V3Token()
-    token.set_project_scope()
-
+def _token_fixture(**kwargs):
+    token = ksa_fixture.V3Token(**kwargs)
     s = token.add_service('identity')
     s.add_standard_endpoints(public='http://example.com/identity/public',
                              admin='http://example.com/identity/admin',
                              internal='http://example.com/identity/internal',
                              region='RegionOne')
+    return token
 
+
+@pytest.fixture
+def user_auth_headers(tokens: "AuthTokenFixture") -> dict:
+    token = _token_fixture()
+    token.set_project_scope()
     token_id = tokens.add_token(token)
-    return token_id
+    return {"X-Auth-Token": token_id}
+
+
+@pytest.fixture
+def admin_auth_headers(tokens: "AuthTokenFixture") -> dict:
+    token = _token_fixture()
+    token.set_project_scope()
+    token.add_role(name="admin")
+    token_id = tokens.add_token(token)
+    return {"X-Auth-Token": token_id}

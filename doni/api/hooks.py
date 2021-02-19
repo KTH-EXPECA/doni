@@ -1,9 +1,18 @@
+from functools import wraps
+
 from flask import request
 from keystonemiddleware.auth_token import AuthProtocol
 from keystonemiddleware.auth_token._request import _AuthTokenRequest
+from oslo_policy.policy import PolicyNotAuthorized
 
+from doni.api.utils import make_error_response
 from doni.common import context as doni_context
+from doni.common import exception
 from doni.conf import CONF
+
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from flask import Blueprint
 
 
 class AuthTokenFlaskMiddleware(object):
@@ -43,3 +52,19 @@ class ContextMiddleware(object):
     def after_request(self, res):
         res.headers["OpenStack-Request-Id"] = request.context.request_id
         return res
+
+
+def route(rule, blueprint: "Blueprint"=None, **options):
+    """Decorator which validates and transforms function arguments
+    """
+    def inner_function(function):
+        @wraps(function)
+        def inner_check_args(*args, **kwargs):
+            try:
+                return function(*args, **kwargs)
+            except PolicyNotAuthorized as exc:
+                return make_error_response(str(exc), 403)
+            except exception.NotFound as exc:
+                return make_error_response(str(exc), 404)
+        return blueprint.route(rule, **options)(inner_check_args)
+    return inner_function
