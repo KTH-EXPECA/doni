@@ -16,3 +16,7 @@ publish:
 .PHONY: start
 start:
 	docker-compose up --build
+
+.PHONY: test
+test:
+	tox
