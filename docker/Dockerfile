@@ -1,3 +1,4 @@
+# This should match the default Python version in the test actions
 ARG python_version=3.8
 
 FROM python:${python_version} as builder
