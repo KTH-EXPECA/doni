@@ -133,3 +133,8 @@ class HardwareAlreadyExists(Conflict):
 
 class HardwareDuplicateName(Conflict):
     _msg_fmt = ("Hardware with name %(name)s already exists.")
+
+
+class DriverNotFound(Invalid):
+    _msg_fmt = ("Could not find the following driver(s) or hardware type(s): "
+                "%(driver_name)s.")

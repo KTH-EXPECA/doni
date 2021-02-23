@@ -7,14 +7,14 @@ from urllib import parse as urlparse
 
 from oslo_db import options as db_options
 from oslo_db.sqlalchemy import models
-# db_types has various JSON-encoded helper types
-#from oslo_db.sqlalchemy import types as db_types
 from sqlalchemy import Column
+from sqlalchemy import ForeignKey
 from sqlalchemy import Integer
-from sqlalchemy import schema, String
+from sqlalchemy import orm
+from sqlalchemy import schema
+from sqlalchemy import String
+from oslo_db.sqlalchemy import types as db_types
 from sqlalchemy.ext.declarative import declarative_base
-# orm has ways of modeling table relationships
-#from sqlalchemy import orm
 
 from doni.conf import CONF
 
@@ -58,4 +58,24 @@ class Hardware(Base):
     id = Column(Integer, primary_key=True)
     uuid = Column(String(36))
     project_id = Column(String(255))
+    hardware_type = Column(String(64))
     name = Column(String(255))
+
+    workers = orm.relationship("Worker", backref="hardware")
+
+
+class Worker(Base):
+    __tablename__ = 'worker'
+    __table_args__ = (
+        schema.UniqueConstraint('uuid', name='uniq_workers0uuid'),
+        schema.UniqueConstraint(
+            'hardware_uuid',
+            'worker_type',
+            name='uniq_workers0hardware_uuid0worker_type'),
+        table_args())
+    id = Column(Integer, primary_key=True)
+    uuid = Column(String(36))
+    hardware_uuid = Column(String(36), ForeignKey('hardware.uuid'))
+    worker_type = Column(String(64))
+    state = Column(String(15))
+    details = Column(db_types.JsonEncodedDict)

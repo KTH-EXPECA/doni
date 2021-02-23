@@ -1,10 +1,12 @@
-from typing import TYPE_CHECKING
-if TYPE_CHECKING:
-    from doni.common.context import RequestContext
+from oslo_versionedobjects import fields as ovo_fields
 
 from doni.db import api as db_api
 from doni.objects import base
 from doni.objects import fields as object_fields
+
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from doni.common.context import RequestContext
 
 @base.DoniObjectRegistry.register
 class Hardware(base.DoniObject):
@@ -16,8 +18,10 @@ class Hardware(base.DoniObject):
     fields = {
         'id': object_fields.IntegerField(),
         'uuid': object_fields.UUIDField(nullable=False),
+        'hardware_type': object_fields.StringField(nullable=False),
         'project_id': object_fields.StringField(nullable=False),
         'name': object_fields.StringField(nullable=False),
+        'workers': ovo_fields.ListOfObjectsField('Worker', nullable=False),
     }
 
     def create(self, context: "RequestContext"=None):

@@ -57,8 +57,18 @@ utils_opts = [
                       'dir.')),
 ]
 
+worker_opts = [
+    cfg.ListOpt('enabled_hardware_types',
+                default=['baremetal'],
+                help=('')),
+    cfg.ListOpt('enabled_worker_types',
+                default=['ironic'],
+                help=('')),
+]
+
 def register_opts(conf):
     conf.register_opts(path_opts)
     conf.register_opts(service_opts)
     conf.register_opts(exc_log_opts)
     conf.register_opts(utils_opts)
+    conf.register_opts(worker_opts)

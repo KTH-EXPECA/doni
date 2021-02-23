@@ -78,7 +78,9 @@ class Connection(object):
             values['uuid'] = uuidutils.generate_uuid()
 
         hardware = models.Hardware()
-        hardware.update(values)
+        # Create one worker for each worker type we have.
+        # hardware.hardware_type
+
         with _session_for_write() as session:
             try:
                 session.add(hardware)

@@ -7,23 +7,24 @@ def object_to_dict(obj, include_created_at=True, include_updated_at=True,
                    include_uuid=True, link_resource=None,
                    link_resource_args=None, fields=None):
     """Helper function to convert RPC objects to REST API dicts.
-    :param obj:
-        RPC object to convert to a dict
-    :param include_created_at:
-        Whether to include standard base class attribute created_at
-    :param include_updated_at:
-        Whether to include standard base class attribute updated_at
-    :param include_uuid:
-        Whether to include standard base class attribute uuid
-    :param link_resource:
-        When specified, generate a ``links`` value with a ``self`` and
-        ``bookmark`` using this resource name
-    :param link_resource_args:
-        Resource arguments to be added to generated links. When not specified,
-        the object ``uuid`` will be used.
-    :param fields:
-        Key names for dict values to populate directly from object attributes
-    :returns: A dict containing values from the object
+
+    Args:
+        obj (DoniObject): RPC object to convert to a dict.
+        include_created_at (bool): Whether to include standard base class
+            attribute ``created_at``.
+        include_updated_at (bool): Whether to include standard base class
+            attribute ``updated_at``.
+        include_uuid (bool): Whether to include standard base class attribute
+            ``uuid``.
+        link_resource (bool): When specified, generate a ``links`` value with
+            a ``self`` and ``bookmark`` using this resource name.
+        link_resource_args (any): Resource arguments to be added to generated
+            links. When not specified, the object ``uuid`` will be used.
+        fields (list[str]): Key names for dict values to populate directly from
+            object attributes.
+
+    Returns:
+        A dict containing values from the object.
     """
     url = request.url
     to_dict = {}

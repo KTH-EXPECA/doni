@@ -41,6 +41,16 @@ pytest-mock = "^3.5.1"
 [tool.poetry.scripts]
 doni-dbsync = "doni.cmd.dbsync:main"
 
+[tool.poetry.plugins."doni.database.migration_backend"]
+sqlalchemy = "doni.db.migration"
+
+[tool.poetry.plugins."doni.driver.hardware_type"]
+baremetal = "doni.driver.hardware_type:Baremetal"
+
+[tool.poetry.plugins."doni.driver.worker_type"]
+blazar = "doni.driver.worker.ironic:BlazarWorker"
+ironic = "doni.driver.worker.ironic:IronicWorker"
+
 [tool.poetry.plugins."oslo.config.opts"]
 doni = "doni.conf.opts:list_opts"
 
@@ -52,9 +62,6 @@ doni = "doni.common.policy:get_oslo_policy_enforcer"
 
 [tool.poetry.plugins."oslo.policy.policies"]
 "doni.api" = "doni.common.policy:list_policies"
-
-[tool.poetry.plugins."doni.database.migration_backend"]
-sqlalchemy = "doni.db.migration"
 
 [build-system]
 build-backend = "poetry.core.masonry.api"

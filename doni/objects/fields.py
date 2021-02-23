@@ -38,3 +38,39 @@ class BooleanField(object_fields.BooleanField):
 
 class EnumField(object_fields.EnumField):
     pass
+
+
+class WorkerStateField(object_fields.EnumField, object_fields.StateMachine):
+    STEADY = 'STEADY'
+    PENDING = 'PENDING'
+    IN_PROGRESS = 'IN_PROGRESS'
+    ERROR = 'ERROR'
+
+    ALLOWED_TRANSITIONS = {
+        STEADY: {
+            PENDING,
+        },
+        PENDING: {
+            IN_PROGRESS,
+        },
+        IN_PROGRESS: {
+            STEADY,
+            ERROR
+        },
+        ERROR: {
+            PENDING,
+        },
+    }
+
+    _TYPES = (STEADY, PENDING, IN_PROGRESS, ERROR)
+
+    def __init__(self, **kwargs):
+        super().__init__(self._TYPES, **kwargs)
+
+
+class FlexibleDict(object_fields.FieldType):
+    pass
+
+
+class FlexibleDictField(object_fields.AutoTypedField):
+    AUTO_TYPE = FlexibleDict()
