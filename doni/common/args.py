@@ -6,24 +6,25 @@ import jsonschema
 
 from doni.common import exception
 
-
-def _and(name, value, validators):
-    for v in validators:
-        value = v(name=name, value=value)
-    return value
-
-
-def and_valid(*validators):
-    """Validates that every supplied validator passes
-    The value returned from each validator is passed as the value to the next
-    one.
-    :param name: Name of the argument
-    :param value: A value
-    :returns: The value transformed through every supplied validator
-    :raises: The error from the first failed validator
-    """
-    assert validators, 'No validators specified for or_valid'
-    return partial(_and, validators=validators)
+# Some JSON schema helpers
+STRING = {"type": "string"}
+PORT_RANGE = {"type": "integer", "minimum": 1, "maximum": 65536}
+HOST_OR_IP = {"oneOf": [{"type": "string", "format": "hostname"},
+                        {"type": "string", "format": "ipv4"},
+                        {"type": "string", "format": "ipv6"}]}
+PATCH = {
+    'type': 'array',
+    'items': {
+        'type': 'object',
+        'properties': {
+            'path': {'type': 'string', 'pattern': '^(/[\\w-]+)+$'},
+            'op': {'type': 'string', 'enum': ['add', 'replace', 'remove']},
+            'value': {}
+        },
+        'additionalProperties': False,
+        'required': ['op', 'path']
+    }
+}
 
 
 def _validate_schema(name, value, schema):

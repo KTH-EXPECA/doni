@@ -16,9 +16,9 @@ class Worker(base.DoniObject):
 
     fields = {
         'id': object_fields.IntegerField(),
-        'uuid': object_fields.UUIDField(nullable=False),
-        'hardware_uuid': object_fields.UUIDField(nullable=False),
+        'uuid': object_fields.UUIDField(),
+        'hardware_uuid': object_fields.UUIDField(),
         'worker_type': object_fields.StringField(),
         'state': object_fields.WorkerStateField(),
-        'details': object_fields.FlexibleDictField()
+        'details': object_fields.FlexibleDictField(),
     }

@@ -7,6 +7,12 @@ from stevedore import named
 from doni.common import exception
 from doni.conf import CONF
 
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from typing import Mapping
+    from doni.driver.hardware_type import HardwareType
+    from doni.driver.worker import BaseWorker
+
 
 LOG = log.getLogger(__name__)
 
@@ -18,14 +24,14 @@ def _get_all_drivers(factory):
     return { name: factory[name].obj for name in factory.names }
 
 
-def get_worker_type(worker_type):
+def get_worker_type(worker_type) -> "BaseWorker":
     """Get a worker type instance by name.
 
     Args:
         worker_type (str): The name of the worker type to find.
 
     Returns:
-        An instance of ~:class:`doni.driver.worker_type.AbstractWorkerType`
+        An instance of ~:class:`doni.driver.worker.BaseWorker`
 
     Raises:
         DriverNotFound: If requested worker type cannot be found.
@@ -36,7 +42,7 @@ def get_worker_type(worker_type):
         raise exception.DriverNotFound(driver_name=worker_type)
 
 
-def worker_types():
+def worker_types() -> "Mapping[str,BaseWorker]":
     """Get all worker types.
 
     Returns:
@@ -45,14 +51,14 @@ def worker_types():
     return _get_all_drivers(WorkerTypeFactory())
 
 
-def get_hardware_type(hardware_type):
+def get_hardware_type(hardware_type) -> "HardwareType":
     """Get a hardware type instance by name.
 
     Args:
         hardware_type (str): The name of the hardware type to find.
 
     Returns:
-        An instance of ~:class:`doni.driver.hardware_type.AbstractHardwareType`
+        An instance of ~:class:`doni.driver.hardware_type.HardwareType`
 
     Raises:
         DriverNotFound: If requested hardware type cannot be found.
@@ -63,13 +69,26 @@ def get_hardware_type(hardware_type):
         raise exception.DriverNotFound(driver_name=hardware_type)
 
 
-def hardware_types():
+def hardware_types() -> "Mapping[str,HardwareType]":
     """Get all hardware types.
 
     Returns:
         Dictionary mapping hardware type name to hardware type object.
     """
     return _get_all_drivers(HardwareTypeFactory())
+
+
+def _create_extension_manager(namespace, names,
+                              on_load_failure_callback=None,
+                              on_missing_entrypoints_callback=None):
+    return named.NamedExtensionManager(
+        namespace,
+        names,
+        invoke_on_load=True,
+        on_load_failure_callback=on_load_failure_callback,
+        propagate_map_exceptions=True,
+        on_missing_entrypoints_callback=on_missing_entrypoints_callback
+    )
 
 
 class BaseDriverFactory(object):
@@ -154,18 +173,12 @@ class BaseDriverFactory(object):
             raise exception.DriverNotFoundInEntrypoint(
                 names=names, entrypoint=cls._entrypoint_name)
 
-        cls._extension_manager = (
-            named.NamedExtensionManager(
-                cls._entrypoint_name,
-                cls._enabled_driver_list,
-                invoke_on_load=True,
-                on_load_failure_callback=_catch_driver_not_found,
-                propagate_map_exceptions=True,
-                on_missing_entrypoints_callback=missing_callback))
-
-        # warn for any untested/unsupported/deprecated drivers or interfaces
-        if cls._enabled_driver_list:
-            cls._extension_manager.map(_warn_if_unsupported)
+        cls._extension_manager = _create_extension_manager(
+            cls._entrypoint_name,
+            cls._enabled_driver_list,
+            on_load_failure_callback=_catch_driver_not_found,
+            on_missing_entrypoints_callback=missing_callback
+        )
 
         LOG.info(f"Loaded the following drivers: {cls._extension_manager.names()}")
 
@@ -179,19 +192,13 @@ class BaseDriverFactory(object):
         return ((ext.name, ext.obj) for ext in self._extension_manager)
 
 
-def _warn_if_unsupported(ext):
-    if not ext.obj.supported:
-        LOG.warning('Driver "%s" is UNSUPPORTED. It has been deprecated '
-                    'and may be removed in a future release.', ext.name)
-
-
 class HardwareTypeFactory(BaseDriverFactory):
-    _entrypoint_name = 'doni.hardware.types'
+    _entrypoint_name = 'doni.driver.hardware_type'
     _enabled_driver_list_config_option = 'enabled_hardware_types'
     _logging_template = "Loaded the following hardware types: %s"
 
 
 class WorkerTypeFactory(BaseDriverFactory):
-    _entrypoint_name = 'doni.worker.types'
+    _entrypoint_name = 'doni.driver.worker_type'
     _enabled_driver_list_config_option = 'enabled_worker_types'
     _logging_template = "Loaded the following worker types: %s"

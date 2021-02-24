@@ -9,6 +9,13 @@ import pytest
 from doni.tests.unit import utils
 
 
+@pytest.fixture(autouse=True)
+def _use_fake_hardware(set_defaults):
+    """Use the 'fake-hardware' Hardware type to avoid additional validation.
+    """
+    set_defaults(enabled_hardware_types=[utils.FAKE_HARDWARE_TYPE])
+
+
 def test_get_all_hardware(mocker, user_auth_headers, client: "FlaskClient"):
     mock_authorize = mocker.patch("doni.api.hardware.authorize")
     res = client.get("/v1/hardware/", headers=user_auth_headers)
@@ -43,7 +50,12 @@ def test_missing_hardware(mocker, user_auth_headers, client: "FlaskClient"):
 
 def test_enroll_hardware(mocker, user_auth_headers, client: "FlaskClient"):
     mock_authorize = mocker.patch("doni.api.hardware.authorize")
-    enroll_payload = {"name": "fake-hardware", "project_id": "fake_project_id"}
+    enroll_payload = {
+        "name": "fake-name",
+        "project_id": "fake-project_id",
+        "hardware_type": utils.FAKE_HARDWARE_TYPE,
+        "properties": {},
+    }
     res = client.post(f"/v1/hardware/",
         headers=user_auth_headers,
         content_type="application/json",
@@ -59,7 +71,7 @@ FAKE_UUID = uuidutils.generate_uuid()
     pytest.param("/v1/hardware/", {
         "method": "POST",
         "content_type": "application/json",
-        "data": json.dumps({"name": "fake-hardware", "project_id": "fake_project_id"}),
+        "data": json.dumps({"name": "fake-name", "project_id": "fake_project_id"}),
     }, id="enroll"),
 ])
 def test_policy_disallow(mocker, user_auth_headers, path, req_kwargs,

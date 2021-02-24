@@ -5,16 +5,20 @@ from oslo_utils import uuidutils
 from doni.common import exception
 from doni.db import api as db_api
 
+FAKE_HARDWARE_TYPE = "fake-hardware"
+
 
 def get_test_hardware(**kw):
     default_uuid = uuidutils.generate_uuid()
     return {
-        'created_at': kw.get('created_at'),
-        'updated_at': kw.get('updated_at'),
-        'id': kw.get('id', 234),
-        'name': kw.get('name', u'fake_name'),
-        'uuid': kw.get('uuid', default_uuid),
-        'project_id': kw.get('project_id', 'fake_project_id'),
+        "created_at": kw.get("created_at"),
+        "updated_at": kw.get("updated_at"),
+        "id": kw.get("id", 234),
+        "name": kw.get("name", "fake_name"),
+        "uuid": kw.get("uuid", default_uuid),
+        "hardware_type": kw.get("hardware_type", FAKE_HARDWARE_TYPE),
+        "project_id": kw.get("project_id", "fake_project_id"),
+        "properties": kw.get("properties", {}),
     }
 
 

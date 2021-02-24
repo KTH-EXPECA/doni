@@ -123,6 +123,10 @@ class MissingParameterValue(Invalid):
     _msg_fmt = "%(msg)s"
 
 
+class PatchError(Invalid):
+    _msg_fmt = ("Couldn't apply patch '%(patch)s'. Reason: %(reason)s")
+
+
 class HardwareNotFound(NotFound):
     _msg_fmt = ("Hardware %(hardware)s could not be found.")
 
@@ -138,3 +142,13 @@ class HardwareDuplicateName(Conflict):
 class DriverNotFound(Invalid):
     _msg_fmt = ("Could not find the following driver(s) or hardware type(s): "
                 "%(driver_name)s.")
+
+
+class DriverNotFoundInEntrypoint(DriverNotFound):
+    _msg_fmt = ("Could not find the following items in the "
+                "'%(entrypoint)s' entrypoint: %(names)s.")
+
+
+class DriverLoadError(DoniException):
+    _msg_fmt = ("Driver, hardware type or interface %(driver)s could not be "
+                "loaded. Reason: %(reason)s.")

@@ -2,6 +2,7 @@
 SQLAlchemy models for hardware data.
 """
 
+from doni.objects.fields import FlexibleDict
 from os import path
 from urllib import parse as urlparse
 
@@ -60,8 +61,7 @@ class Hardware(Base):
     project_id = Column(String(255))
     hardware_type = Column(String(64))
     name = Column(String(255))
-
-    workers = orm.relationship("Worker", backref="hardware")
+    properties = Column(db_types.JsonEncodedDict)
 
 
 class Worker(Base):
@@ -78,4 +78,4 @@ class Worker(Base):
     hardware_uuid = Column(String(36), ForeignKey('hardware.uuid'))
     worker_type = Column(String(64))
     state = Column(String(15))
-    details = Column(db_types.JsonEncodedDict)
+    state_details = Column(db_types.JsonEncodedDict)

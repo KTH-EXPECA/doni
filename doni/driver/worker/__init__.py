@@ -5,18 +5,17 @@ if TYPE_CHECKING:
     from doni.objects.hardware import Hardware
 
 
-class AbstractWorker(abc.ABC):
+class BaseWorker(abc.ABC):
     """A base interface implementing common functions for Driver Interfaces.
 
     Attributes:
-        supported (bool): Indicates if the driver is supported. This will be
-            set to False for drivers which are untested or otherwise not
-            production-ready. (Default True)
         worker_type (str): The name of the worker type.
+        validator_schema (dict): A JSON schema that will be used to validate
+            hardware properties when this worker is enabled for the hardware.
     """
 
-    supported = True
     worker_type = "base"
+    validator_schema = {}
 
     @abc.abstractmethod
     def on_hardware_create(self, hardware: "Hardware"):

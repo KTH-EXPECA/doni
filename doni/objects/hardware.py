@@ -17,11 +17,11 @@ class Hardware(base.DoniObject):
 
     fields = {
         'id': object_fields.IntegerField(),
-        'uuid': object_fields.UUIDField(nullable=False),
-        'hardware_type': object_fields.StringField(nullable=False),
-        'project_id': object_fields.StringField(nullable=False),
-        'name': object_fields.StringField(nullable=False),
-        'workers': ovo_fields.ListOfObjectsField('Worker', nullable=False),
+        'uuid': object_fields.UUIDField(),
+        'hardware_type': object_fields.StringField(),
+        'project_id': object_fields.StringField(),
+        'name': object_fields.StringField(),
+        'properties': object_fields.FlexibleDictField(default={}),
     }
 
     def create(self, context: "RequestContext"=None):
@@ -35,6 +35,7 @@ class Hardware(base.DoniObject):
             HardwareAlreadyExists: if a hardware with the same UUID exists.
         """
         values = self.obj_get_changes()
+        print(values)
         db_hardware = self.dbapi.create_hardware(values)
         self._from_db_object(self._context, self, db_hardware)
 

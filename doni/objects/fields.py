@@ -40,7 +40,7 @@ class EnumField(object_fields.EnumField):
     pass
 
 
-class WorkerStateField(object_fields.EnumField, object_fields.StateMachine):
+class WorkerStateField(object_fields.StateMachine):
     STEADY = 'STEADY'
     PENDING = 'PENDING'
     IN_PROGRESS = 'IN_PROGRESS'
