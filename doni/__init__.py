@@ -70,10 +70,12 @@ def create_app(test_config=None):
     )
     app.after_request(_add_vary_x_auth_token_header)
 
+    from .api import availability_window
     from .api import hardware
     from .api import root
     app.register_blueprint(root.bp)
     app.register_blueprint(hardware.bp, url_prefix="/v1/hardware")
+    app.register_blueprint(availability_window.bp, url_prefix="/v1/hardware")
     app.logger.info("Registered apps")
 
     # Propagate gunicorn log level to Flask

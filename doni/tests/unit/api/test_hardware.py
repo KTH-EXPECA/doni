@@ -9,13 +9,6 @@ import pytest
 from doni.tests.unit import utils
 
 
-@pytest.fixture(autouse=True)
-def _use_fake_hardware(set_defaults):
-    """Use the 'fake-hardware' Hardware type to avoid additional validation.
-    """
-    set_defaults(enabled_hardware_types=[utils.FAKE_HARDWARE_TYPE])
-
-
 def test_get_all_hardware(mocker, user_auth_headers, client: "FlaskClient"):
     mock_authorize = mocker.patch("doni.api.hardware.authorize")
     res = client.get("/v1/hardware/", headers=user_auth_headers)

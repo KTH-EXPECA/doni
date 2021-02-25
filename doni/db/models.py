@@ -2,13 +2,13 @@
 SQLAlchemy models for hardware data.
 """
 
-from doni.objects.fields import FlexibleDict
 from os import path
 from urllib import parse as urlparse
 
 from oslo_db import options as db_options
 from oslo_db.sqlalchemy import models
 from sqlalchemy import Column
+from sqlalchemy import DateTime
 from sqlalchemy import ForeignKey
 from sqlalchemy import Integer
 from sqlalchemy import orm
@@ -79,3 +79,15 @@ class Worker(Base):
     worker_type = Column(String(64))
     state = Column(String(15))
     state_details = Column(db_types.JsonEncodedDict)
+
+
+class AvailabilityWindow(Base):
+    __tablename__ = 'availability_window'
+    __table_args__ = (
+        schema.Index('availability_window_hardware_uuid_idx', 'hardware_uuid'),
+        table_args())
+    id = Column(Integer, primary_key=True)
+    uuid = Column(String(36))
+    hardware_uuid = Column(String(36), ForeignKey('hardware.uuid'))
+    start = Column(DateTime(), nullable=True)
+    end = Column(DateTime(), nullable=True)

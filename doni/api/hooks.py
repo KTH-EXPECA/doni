@@ -85,6 +85,7 @@ def route(rule, blueprint: "Blueprint"=None, **options):
             except exception.NotFound as exc:
                 return make_error_response(str(exc), 404)
             except Exception as exc:
+                # FIXME: why won't this log for tests and we have to print()?
                 print(exc)
                 LOG.error(f"Unhandled error on {rule}: {exc}")
                 return make_error_response("An unknown error occurred.", 500)

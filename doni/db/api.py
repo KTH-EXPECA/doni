@@ -8,11 +8,16 @@ from oslo_log import log
 from oslo_utils import uuidutils
 from osprofiler import sqlalchemy as osp_sqlalchemy
 import sqlalchemy as sa
-from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
+from sqlalchemy.orm.exc import NoResultFound
 
 from doni.common import exception
 from doni.conf import CONF
 from doni.db import models
+
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from sqlalchemy.orm.session import Session
+    from typing import ContextManager
 
 LOG = log.getLogger(__name__)
 
@@ -23,14 +28,14 @@ def get_instance():
     return Connection()
 
 
-def _session_for_read():
+def _session_for_read() -> "ContextManager[Session]":
     return _wrap_session(enginefacade.reader.using(_CONTEXT))
 
 
 # Please add @oslo_db_api.retry_on_deadlock decorator to all methods using
 # _session_for_write (as deadlocks happen on write), so that oslo_db is able
 # to retry in case of deadlocks.
-def _session_for_write():
+def _session_for_write() -> "ContextManager[Session]":
     return _wrap_session(enginefacade.writer.using(_CONTEXT))
 
 
@@ -106,7 +111,6 @@ class Connection(object):
             except db_exc.DBDuplicateEntry as exc:
                 if 'name' in exc.columns:
                     raise exception.HardwareDuplicateName(name=values['name'])
-                print(exc.columns)
                 raise exception.HardwareAlreadyExists(uuid=values['uuid'])
             return query.one()
 
@@ -149,3 +153,8 @@ class Connection(object):
                           sort_dir=None):
         return _paginate_query(
             models.Hardware, limit, marker, sort_key, sort_dir)
+
+    def get_availability_window_list(self, hardware_uuid):
+        query = model_query(models.AvailabilityWindow).filter_by(hardware_uuid=hardware_uuid)
+        # TODO: how to communicate that hardware doesn't exist?
+        return query.all()

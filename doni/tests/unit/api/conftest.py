@@ -4,6 +4,7 @@ from keystonemiddleware.fixture import AuthTokenFixture
 import pytest
 
 from doni import create_app
+from doni.tests.unit import utils
 
 
 @pytest.fixture
@@ -47,3 +48,10 @@ def admin_auth_headers(tokens: "AuthTokenFixture") -> dict:
     token.add_role(name="admin")
     token_id = tokens.add_token(token)
     return {"X-Auth-Token": token_id}
+
+
+@pytest.fixture(autouse=True)
+def _use_fake_hardware(set_defaults):
+    """Use the 'fake-hardware' Hardware type for testing.
+    """
+    set_defaults(enabled_hardware_types=[utils.FAKE_HARDWARE_TYPE])

@@ -35,7 +35,6 @@ class Hardware(base.DoniObject):
             HardwareAlreadyExists: if a hardware with the same UUID exists.
         """
         values = self.obj_get_changes()
-        print(values)
         db_hardware = self.dbapi.create_hardware(values)
         self._from_db_object(self._context, self, db_hardware)
 
@@ -138,6 +137,6 @@ class Hardware(base.DoniObject):
         Returns:
             A list of :class:`Hardware` objects.
         """
-        db_templates = cls.dbapi.get_hardware_list(
+        db_hardwares = cls.dbapi.get_hardware_list(
             limit=limit, marker=marker, sort_key=sort_key, sort_dir=sort_dir)
-        return cls._from_db_object_list(context, db_templates)
+        return cls._from_db_object_list(context, db_hardwares)

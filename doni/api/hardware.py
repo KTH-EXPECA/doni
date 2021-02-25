@@ -2,10 +2,9 @@ from flask import Blueprint
 from flask import request
 
 from doni.api.hooks import route
-from doni.api.utils import object_to_dict, apply_jsonpatch
+from doni.api import utils as api_utils
 from doni.common import args
 from doni.common import driver_factory
-from doni.common import exception
 from doni.common.policy import authorize
 from doni.objects.hardware import Hardware
 
@@ -17,10 +16,10 @@ DEFAULT_FIELDS = ('name', 'project_id', 'hardware_type', 'properties',)
 HARDWARE_SCHEMA = {
     'type': 'object',
     'properties': {
-        'name': {'type': ['string', 'null']},
-        'uuid': {'type': ['string', 'null']},
-        'hardware_type': {'type': ['string', 'null']},
-        'project_id': {'type': ['string', 'null']},
+        'name': args.STRING,
+        'uuid': args.STRING,
+        'hardware_type': args.STRING,
+        'project_id': args.STRING,
         'properties': {'type': 'object', 'additionalProperties': True},
     },
     'additionalProperties': False,
@@ -76,7 +75,7 @@ def get_all():
     authorize("hardware:get", ctx)
     return {
         "hardware": [
-            object_to_dict(hw, fields=DEFAULT_FIELDS)
+            api_utils.object_to_dict(hw, fields=DEFAULT_FIELDS)
             for hw in Hardware.list(ctx)
         ],
     }
@@ -87,32 +86,30 @@ def get_one(hardware_uuid):
     ctx = request.context
     hardware = Hardware.get_by_uuid(ctx, str(hardware_uuid))
     authorize("hardware:get", ctx, hardware)
-    return object_to_dict(hardware, fields=DEFAULT_FIELDS)
+    return api_utils.object_to_dict(hardware, fields=DEFAULT_FIELDS)
 
 
 @route("/", methods=["POST"], blueprint=bp)
 @args.validate(json_body=hardware_validator())
 def create(json_body):
     ctx = request.context
+
     hardware = Hardware(ctx, **json_body)
     authorize("hardware:create", ctx, hardware)
     hardware.create()
-    return object_to_dict(hardware, fields=DEFAULT_FIELDS), 201
+
+    return api_utils.object_to_dict(hardware, fields=DEFAULT_FIELDS), 201
 
 
 @route("/<uuid:hardware_uuid>/", methods=["PATCH"], blueprint=bp)
 @args.validate(json_body=args.schema(args.PATCH))
 def update(hardware_uuid, json_body):
     ctx = request.context
+    patch = json_body
+
     hardware = Hardware.get_by_uuid(ctx, str(hardware_uuid))
     authorize("hardware:update", ctx, hardware)
-
-    # traits = api_utils.get_patch_values(patch, '/traits')
-    # if traits:
-    #     msg = _("Cannot update node traits via node patch. Node traits "
-    #             "should be updated via the node traits API.")
-    #     raise exception.Invalid(msg)
-
-    apply_jsonpatch(hardware, json_body)
+    api_utils.apply_jsonpatch(hardware, patch)
     hardware.save()
-    return object_to_dict(hardware, fields=DEFAULT_FIELDS)
+
+    return api_utils.object_to_dict(hardware, fields=DEFAULT_FIELDS)

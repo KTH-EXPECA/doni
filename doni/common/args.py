@@ -8,6 +8,7 @@ from doni.common import exception
 
 # Some JSON schema helpers
 STRING = {"type": "string"}
+DATETIME = {"type": "string", "format": "date-time"}
 PORT_RANGE = {"type": "integer", "minimum": 1, "maximum": 65536}
 HOST_OR_IP = {"oneOf": [{"type": "string", "format": "hostname"},
                         {"type": "string", "format": "ipv4"},
@@ -25,6 +26,14 @@ PATCH = {
         'required': ['op', 'path']
     }
 }
+
+def optional(schema):
+    return {
+        "anyOf": [
+            schema,
+            {"type": "null"},
+        ]
+    }
 
 
 def _validate_schema(name, value, schema):
