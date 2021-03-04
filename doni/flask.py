@@ -6,6 +6,7 @@ from flask import Flask
 from oslo_middleware import healthcheck
 from werkzeug.middleware import dispatcher as wsgi_dispatcher
 
+from doni import PROJECT_NAME
 from doni.api import hooks
 from doni.conf import CONF
 

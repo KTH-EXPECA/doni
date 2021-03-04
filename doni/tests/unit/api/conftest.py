@@ -3,7 +3,7 @@ from keystoneauth1 import fixture as ksa_fixture
 from keystonemiddleware.fixture import AuthTokenFixture
 import pytest
 
-from doni import create_app
+from doni.flask import create_app
 from doni.tests.unit import utils
 
 
