@@ -21,11 +21,7 @@ class HardwareType(abc.ABC):
 class Baremetal(HardwareType):
     """A bare metal node, provisionable via e.g., Ironic
     """
-    enabled_workers = ("blazar", "ironic",)
-
-    default_fields = {
-        "blazar_resource_type": "physical:host",
-    }
+    enabled_workers = ("blazar.physical_host", "ironic",)
 
 
 class Fake(HardwareType):

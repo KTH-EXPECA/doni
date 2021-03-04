@@ -64,8 +64,8 @@ class Hardware(Base):
     properties = Column(db_types.JsonEncodedDict)
 
 
-class Worker(Base):
-    __tablename__ = 'worker'
+class WorkerTask(Base):
+    __tablename__ = 'worker_task'
     __table_args__ = (
         schema.UniqueConstraint('uuid', name='uniq_workers0uuid'),
         schema.UniqueConstraint(

@@ -1,8 +1,11 @@
+from itertools import chain
 from os.path import abspath, join, dirname
 import socket
 import tempfile
 
 from oslo_config import cfg
+
+GROUP = "DEFAULT"
 
 path_opts = [
     cfg.StrOpt('pybasedir',
@@ -66,9 +69,10 @@ worker_opts = [
                 help=('')),
 ]
 
-def register_opts(conf):
-    conf.register_opts(path_opts)
-    conf.register_opts(service_opts)
-    conf.register_opts(exc_log_opts)
-    conf.register_opts(utils_opts)
-    conf.register_opts(worker_opts)
+opts = chain(*[
+    path_opts,
+    service_opts,
+    exc_log_opts,
+    utils_opts,
+    worker_opts
+])

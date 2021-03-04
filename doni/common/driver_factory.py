@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from typing import Mapping
     from doni.driver.hardware_type import HardwareType
-    from doni.driver.worker import BaseWorker
+    from doni.worker import BaseWorker
 
 
 LOG = log.getLogger(__name__)
@@ -31,7 +31,7 @@ def get_worker_type(worker_type) -> "BaseWorker":
         worker_type (str): The name of the worker type to find.
 
     Returns:
-        An instance of ~:class:`doni.driver.worker.BaseWorker`
+        An instance of ~:class:`doni.worker.BaseWorker`
 
     Raises:
         DriverNotFound: If requested worker type cannot be found.

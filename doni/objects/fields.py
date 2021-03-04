@@ -15,6 +15,8 @@
 
 from oslo_versionedobjects import fields as object_fields
 
+from doni.worker import WorkerState
+
 
 class IntegerField(object_fields.IntegerField):
     pass
@@ -41,10 +43,10 @@ class EnumField(object_fields.EnumField):
 
 
 class WorkerStateField(object_fields.StateMachine):
-    STEADY = 'STEADY'
-    PENDING = 'PENDING'
-    IN_PROGRESS = 'IN_PROGRESS'
-    ERROR = 'ERROR'
+    STEADY = WorkerState.STEADY
+    PENDING = WorkerState.PENDING
+    IN_PROGRESS = WorkerState.IN_PROGRESS
+    ERROR = WorkerState.ERROR
 
     ALLOWED_TRANSITIONS = {
         STEADY: {

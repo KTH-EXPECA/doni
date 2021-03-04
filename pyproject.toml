@@ -30,6 +30,8 @@ keystonemiddleware = "^9.2.0"
 "oslo.policy" = "^3.6.2"
 jsonschema = "^3.2.0"
 jsonpatch = "^1.28"
+"oslo.reports" = "^2.2.0"
+futurist = "^2.3.0"
 
 [tool.poetry.dev-dependencies]
 black = "^20.8b1"
@@ -50,7 +52,7 @@ fake-hardware = "doni.driver.hardware_type:Fake"
 baremetal = "doni.driver.hardware_type:Baremetal"
 
 [tool.poetry.plugins."doni.driver.worker_type"]
-blazar = "doni.driver.worker.blazar:BlazarWorker"
+"blazar.physical_host" = "doni.driver.worker.blazar:BlazarPhysicalHostWorker"
 ironic = "doni.driver.worker.ironic:IronicWorker"
 
 [tool.poetry.plugins."oslo.config.opts"]

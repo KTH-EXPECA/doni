@@ -1,16 +1,12 @@
-import itertools
-
 from oslo_log import log
 
 import doni.conf
 
-_default_opt_lists = [
-    doni.conf.default.path_opts,
-]
-
 _opts = [
-    ('DEFAULT', itertools.chain(*_default_opt_lists)),
-    #('agent', doni.conf.agent.opts),
+    (conf.GROUP, conf.opts) for conf in [
+        doni.conf.default,
+        doni.conf.worker,
+    ]
 ]
 
 

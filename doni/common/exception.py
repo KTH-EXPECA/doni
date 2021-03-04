@@ -115,6 +115,11 @@ class Conflict(DoniException):
     code = http_client.CONFLICT
 
 
+class TemporaryFailure(DoniException):
+    _msg_fmt = ("Resource temporarily unavailable, please retry.")
+    code = http_client.SERVICE_UNAVAILABLE
+
+
 class InvalidParameterValue(Invalid):
     _msg_fmt = "%(msg)s"
 
@@ -152,3 +157,16 @@ class DriverNotFoundInEntrypoint(DriverNotFound):
 class DriverLoadError(DoniException):
     _msg_fmt = ("Driver, hardware type or interface %(driver)s could not be "
                 "loaded. Reason: %(reason)s.")
+
+
+class WorkerTaskNotFound(NotFound):
+    _msg_fmt = ("WorkerTask %(worker)s could not be found.")
+
+
+class WorkerTaskAlreadyExists(Conflict):
+    _msg_fmt = ("WorkerTask with UUID %(uuid)s already exists.")
+
+
+class NoFreeWorker(TemporaryFailure):
+    _msg_fmt = ('Requested action cannot be performed due to lack of free '
+                'workers.')

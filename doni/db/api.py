@@ -16,6 +16,7 @@ from doni.db import models
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
+    from doni.worker import WorkerState
     from sqlalchemy.orm.session import Session
     from typing import ContextManager
 
@@ -158,3 +159,23 @@ class Connection(object):
         query = model_query(models.AvailabilityWindow).filter_by(hardware_uuid=hardware_uuid)
         # TODO: how to communicate that hardware doesn't exist?
         return query.all()
+
+    def get_worker_tasks_in_state(self, state: "WorkerState"):
+        query = model_query(models.WorkerTask).filter_by(state=state)
+        return query.all()
+
+    @oslo_db_api.retry_on_deadlock
+    def update_worker_task(self, worker_task_uuid, values):
+        if 'uuid' in values:
+            msg = ("Cannot overwrite UUID for existing WorkerTask.")
+            raise exception.InvalidParameterValue(msg=msg)
+
+        with _session_for_write() as session:
+            query = session.query(models.WorkerTask).filter_by(uuid=worker_task_uuid)
+            try:
+                count = query.update(values)
+                if count != 1:
+                    raise exception.WorkerTaskNotFound(worker=worker_task_uuid)
+            except db_exc.DBDuplicateEntry as exc:
+                raise exception.WorkerTaskAlreadyExists(uuid=values['uuid'])
+            return query.one()
