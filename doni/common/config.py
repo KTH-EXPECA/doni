@@ -1,7 +1,6 @@
 from oslo_config import cfg
 import osprofiler.opts as profiler_opts
 
-from doni.common import rpc
 from doni import __version__, PROJECT_NAME
 
 
@@ -13,4 +12,4 @@ def parse_args(argv, default_config_files=None):
              version=__version__,
              default_config_files=default_config_files)
     profiler_opts.set_defaults(cfg.CONF)
-    rpc.set_defaults(control_exchange=PROJECT_NAME)
+    # rpc.set_defaults(control_exchange=PROJECT_NAME)

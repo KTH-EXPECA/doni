@@ -6,7 +6,6 @@ from doni import objects
 from doni import PROJECT_NAME
 from doni.common import config
 from doni.common import context as doni_context
-from doni.common import rpc
 from doni.conf import CONF
 from doni.conf import opts
 
@@ -24,7 +23,7 @@ def prepare_service(argv=None):
     # it does not properly parse the options from config file and uses defaults
     # from oslo_log
     log.setup(CONF, PROJECT_NAME)
-    rpc.init(CONF)
+    # rpc.init(CONF)
     objects.register_all()
 
 
