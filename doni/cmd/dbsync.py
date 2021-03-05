@@ -29,18 +29,6 @@ dbapi = db_api.get_instance()
 # The last migration step should always remain the last one -- it migrates
 # all objects to their latest known versions.
 #
-# Example of a function docstring:
-#
-#        def sample_data_migration(context, max_count):
-#        """Sample method to migrate data to new format.
-#
-#        :param context: an admin context
-#        :param max_count: The maximum number of objects to migrate. Must be
-#                          >= 0. If zero, all the objects will be migrated.
-#        :returns: A 2-tuple -- the total number of objects that need to be
-#                  migrated (at the beginning of this call) and the number
-#                  of migrated objects.
-#        """
 # NOTE(vdrok): Do not access objects' attributes, instead only provide object
 # and attribute name tuples, so that not to trigger the load of the whole
 # object, in case it is lazy loaded. The attribute will be accessed when needed
@@ -84,17 +72,23 @@ class DBCommand(object):
         specified max_count. A migration of an object will typically migrate
         one row of data inside the database.
 
-        :param context: an admin context
-        :param max_count: the maximum number of objects (rows) to migrate;
-            a value >= 1.
-        :param options: migration options - dict mapping migration name
-            to a dictionary of options for this migration.
-        :raises: Exception from the migration function
-        :returns: Boolean value indicating whether migrations are done. Returns
-            False if max_count objects have been migrated (since at that
+        Args:
+            context (RequestContext): an admin context.
+            max_count (int): The maximum number of objects (rows) to migrate;
+                a value >= 1.
+            options (dict): migration options - dict mapping migration name
+                to a dictionary of options for this migration.
+
+        Returns:
+            Boolean value indicating whether migrations are done.
+
+            Returns False if max_count objects have been migrated (since at that
             point, it is unknown whether all migrations are done). Returns
             True if migrations are all done (i.e. fewer than max_count objects
             were migrated when the migrations are done).
+
+        Raises:
+            Exception: any exception from the migration function.
         """
         total_migrated = 0
 
@@ -141,17 +135,20 @@ class DBCommand(object):
         migrations are done. Otherwise, this will run (some of) the functions
         until max_count objects have been migrated.
 
-        :param max_count: the maximum number of individual object migrations
-            or modified rows, a value >= 1. If None, migrations are run in a
-            loop in batches of 50, until completion.
-        :param options: options to pass to migrations. List of values in the
-            form of <migration name>.<option>=<value>
-        :raises: SystemExit. With exit code of:
-            0: when all migrations are complete.
-            1: when objects were migrated and the command needs to be
-               re-run (because there might be more objects to be migrated)
-            127: if max_count is < 1 or any option is invalid
-        :raises: Exception from a migration function
+        Args:
+            max_count (int): the maximum number of individual object migrations
+                or modified rows, a value >= 1. If None, migrations are run in a
+                loop in batches of 50, until completion.
+            options (dict): options to pass to migrations. List of values in the
+                form of <migration name>.<option>=<value>
+
+        Raises:
+            SystemExit: With exit code of:
+                0: when all migrations are complete.
+                1: when objects were migrated and the command needs to be
+                re-run (because there might be more objects to be migrated)
+                127: if max_count is < 1 or any option is invalid
+            Exception: from any exception from a migration function.
         """
         parsed_options = {}
         if options:

@@ -66,9 +66,10 @@ def _paginate_query(model, limit=None, marker=None, sort_key=None,
 
 def model_query(model, *args, **kwargs):
     """Query helper for simpler session usage.
-    :param session: if present, the session to use
-    """
 
+    Args:
+        model (models.Base): The model to query over.
+    """
     with _session_for_read() as session:
         query = session.query(model, *args)
         return query

@@ -15,10 +15,11 @@ def _alembic_config():
     return config
 
 
-def version(config=None, engine=None):
+def version(config=None, engine=None) -> str:
     """Current database version.
-    :returns: Database version
-    :rtype: string
+
+    Returns:
+        The database version.
     """
     if engine is None:
         engine = enginefacade.writer.get_engine()
@@ -29,8 +30,9 @@ def version(config=None, engine=None):
 
 def upgrade(revision, config=None):
     """Used for upgrading database.
-    :param version: Desired database version
-    :type version: string
+
+    Args:
+        revision (str): Desired database version.
     """
     revision = revision or 'head'
     config = config or _alembic_config()
@@ -40,6 +42,7 @@ def upgrade(revision, config=None):
 
 def create_schema(config=None, engine=None):
     """Create database schema from models description.
+
     Can be used for initial installation instead of upgrade('head').
     """
     if engine is None:
@@ -58,8 +61,9 @@ def create_schema(config=None, engine=None):
 
 def downgrade(revision, config=None):
     """Used for downgrading database.
-    :param version: Desired database version
-    :type version: string
+
+    Args:
+        revision (str): Desired database version.
     """
     revision = revision or 'base'
     config = config or _alembic_config()
@@ -68,10 +72,12 @@ def downgrade(revision, config=None):
 
 def stamp(revision, config=None):
     """Stamps database with provided revision.
+
     Don't run any migrations.
-    :param revision: Should match one from repository or head - to stamp
-                     database with most recent revision
-    :type revision: string
+
+    Args:
+        revision (str): Should match one from repository or head - to stamp
+            database with most recent revision
     """
     config = config or _alembic_config()
     return alembic.command.stamp(config, revision=revision)
@@ -79,11 +85,11 @@ def stamp(revision, config=None):
 
 def revision(message=None, autogenerate=False, config=None):
     """Creates template for migration.
-    :param message: Text that will be used for migration title
-    :type message: string
-    :param autogenerate: If True - generates diff based on current database
-                         state
-    :type autogenerate: bool
+
+    Args:
+        message (str): Text that will be used for migration title
+        autogenerate (bool): Whether to generate diff based on current database
+            state
     """
     config = config or _alembic_config()
     return alembic.command.revision(config, message=message,

@@ -11,14 +11,18 @@ LOG = log.getLogger(__name__)
 
 def _ensure_exception_kwargs_serializable(exc_class_name, kwargs):
     """Ensure that kwargs are serializable
+
     Ensure that all kwargs passed to exception constructor can be passed over
     RPC, by trying to convert them to JSON, or, as a last resort, to string.
     If it is not possible, unserializable kwargs will be removed, letting the
     receiver to handle the exception string as it is configured to.
-    :param exc_class_name: a DoniException class name.
-    :param kwargs: a dictionary of keyword arguments passed to the exception
-        constructor.
-    :returns: a dictionary of serializable keyword arguments.
+
+    Args:
+        exc_class_name (str): a DoniException class name.
+        kwargs (dict): Keyword arguments passed to the exception constructor.
+
+    Returns:
+        A dictionary of serializable keyword arguments.
     """
     serializers = [(json.dumps, ('when converting to JSON')),
                    (str, ('when converting to string'))]
