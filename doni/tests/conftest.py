@@ -12,12 +12,12 @@ from doni.db import models
 from doni.tests.unit import utils
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture
 def admin_context():
     return doni_context.get_admin_context()
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture
 def config():
     cfg_fixture = config_fixture.Config(CONF)
     cfg_fixture.setUp()
@@ -26,7 +26,7 @@ def config():
     cfg_fixture.cleanUp()
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture
 def set_defaults(config):
     def _wrapped(**kw):
         """Set default values of config options."""
@@ -55,7 +55,7 @@ def database(set_defaults):
     engine.dispose()
 
 
-@pytest.fixture(scope="session", autouse=True)
+@pytest.fixture(autouse=True)
 def _init_config(set_defaults):
     set_defaults(host='fake-mini', debug=True)
     # This is a bit of a hack; this function does a lot more than
