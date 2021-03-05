@@ -3,7 +3,7 @@ from pytest_mock import MockerFixture
 
 from doni.objects.worker_task import WorkerTask
 from doni.tests.unit import utils
-from doni.worker import WorkerState
+from doni.worker import BaseWorker, WorkerResult, WorkerState
 from doni.worker.manager import WorkerManager
 
 from typing import TYPE_CHECKING
@@ -16,6 +16,13 @@ def manager():
     _manager = WorkerManager("fake-host")
     _manager.start()
     return _manager
+
+
+def worker_that_returns(ret):
+    class WorkerThatReturns(BaseWorker):
+        def process(self):
+            return ret
+    return WorkerThatReturns
 
 
 def test_process_pending(mocker: "MockerFixture", manager: "WorkerManager",

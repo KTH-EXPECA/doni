@@ -75,3 +75,4 @@ def _init_test_env(set_config):
     doni_config.parse_args([], default_config_files=[])
     yield
     driver_factory.HardwareTypeFactory._extension_manager = None
+    driver_factory.WorkerTypeFactory._extension_manager = None

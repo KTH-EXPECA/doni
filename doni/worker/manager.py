@@ -114,7 +114,8 @@ class WorkerManager(object):
             LOG.info((
                 f"Processed batch {i+1}: successfully processed "
                 f"{len(done) - len(failures)} tasks, {len(failures)} failed."))
-            print(failures)
+            if failures:
+                LOG.debug(f"failures={failures}")
 
     def _process_task(self, task: "WorkerTask", hardware_table: "dict[str,Hardware]"):
         assert task.state == WorkerState.PENDING

@@ -1,9 +1,17 @@
 """Doni test utilities."""
 
 from oslo_utils import uuidutils
+from stevedore import extension
+from stevedore import named
 
+from doni.common import driver_factory
 from doni.common import exception
 from doni.db import api as db_api
+
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from pytest_mock import MockerFixture
+
 
 FAKE_HARDWARE_TYPE = "fake-hardware"
 FAKE_WORKER_TYPE = "fake-worker"
@@ -21,6 +29,58 @@ def get_test_hardware(**kw):
         "project_id": kw.get("project_id", "fake_project_id"),
         "properties": kw.get("properties", {}),
     }
+
+
+def mock_drivers(mocker: "MockerFixture", namespaces: dict=None):
+    """Mock out drivers dynamically included via entry_points.
+
+    This can be used to create one-off test drivers for hardware types or
+    workers in unit tests.
+
+    This works by mocking ``_create_extension_manager`` under the hood.
+
+    Args:
+        namespaces (dict): A mapping of entry_point namespaces to the
+            drivers that should be mocked under that entry_point. These drivers
+            will replace any drivers already configured. The drivers should
+            be a mapping of driver name to the implementation class, e.g.::
+
+                {
+                    "my-driver": MyDriver,
+                    "my-other-driver": MyOtherDriver,
+                }
+    """
+    orig_create_extension_manager = driver_factory._create_extension_manager
+
+    def _create_extension_manager(_namespace, names, **kwargs):
+        if _namespace not in namespaces:
+            return orig_create_extension_manager(_namespace, names, **kwargs)
+
+        drivers = namespaces[_namespace]
+        extensions = [
+            extension.Extension(
+                name, entry_point=None, plugin=driver_class, obj=None)
+            for name, driver_class in drivers.items()
+            # The caller will specify an allowlist of names to add to the
+            # extension manager; ensure we respect this.
+            if name in names
+        ]
+        on_load_failure_callback = kwargs["on_load_failure_callback"]
+        em = named.NamedExtensionManager.make_test_instance(
+            extensions, _namespace,
+            on_load_failure_callback=on_load_failure_callback)
+        # NOTE(jason): ``make_test_instance`` doesn't actually do anything with
+        # the on_load_failure_callback, nor does it attempt to invoke the
+        # entrypoints. So, we do a kludgy mimicry of this here.
+        for ext in extensions:
+            try:
+                ext.obj = ext.plugin()
+            except Exception as exc:
+                on_load_failure_callback(em, ext, exc)
+        return em
+
+    (mocker.patch("doni.common.driver_factory._create_extension_manager")
+        .side_effect) = _create_extension_manager
 
 
 class DBFixtures(object):
