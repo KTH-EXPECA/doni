@@ -1,7 +1,5 @@
-from doni.driver import worker
-from doni.worker import WorkerState
+from collections import defaultdict
 import itertools
-import operator
 
 import futurist
 from futurist import periodics
@@ -16,6 +14,7 @@ from doni.db import api as db_api
 from doni.objects.hardware import Hardware
 from doni.objects.worker_task import WorkerTask
 from doni.worker import WorkerResult
+from doni.worker import WorkerState
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
@@ -37,17 +36,19 @@ class WorkerManager(object):
     def start(self, admin_context=None):
         """Initialize the worker host.
 
-        :param admin_context: the admin context to pass to periodic tasks.
-        :raises: RuntimeError when conductor is already running.
-        :raises: NoDriversLoaded when no drivers are enabled on the conductor.
-        :raises: DriverNotFound if a driver is enabled that does not exist.
-        :raises: DriverLoadError if an enabled driver cannot be loaded.
-        :raises: DriverNameConflict if a classic driver and a dynamic driver
-                 are both enabled and have the same name.
+        Args:
+            admin_context (RequestContext): The admin context to pass to
+                periodic tasks.
+
+        Raises:
+            RuntimeError: when worker is already running.
+            DriversNotLoaded: when no drivers are enabled on the worker.
+            DriverNotFound: if a driver is enabled that does not exist.
+            DriverLoadError: if an enabled driver cannot be loaded.
         """
         if self._started:
-            raise RuntimeError('Attempt to start an already running '
-                               'conductor manager')
+            raise RuntimeError('Attempt to start an already running worker')
+
         self._shutdown = False
 
         if not self.dbapi:
@@ -62,17 +63,17 @@ class WorkerManager(object):
         """Executor for performing tasks async."""
 
         hardware_types = driver_factory.hardware_types()
+        worker_types = driver_factory.worker_types()
 
-        if len(hardware_types) < 1:
+        if len(hardware_types) < 1 or len(worker_types) < 1:
             msg = ("Worker %s cannot be started because no hardware types "
                    "were specified in the 'enabled_hardware_types' config "
                    "option.")
             LOG.error(msg, self.host)
-            raise exception.NoDriversLoaded(conductor=self.host)
+            raise exception.DriversNotLoaded(host=self.host)
 
-        workers = [w for w in driver_factory.worker_types().values()]
-
-        self._periodic_tasks = self._collect_periodic_tasks(workers, admin_context)
+        self._periodic_tasks = self._collect_periodic_tasks(
+            list(worker_types.values()), admin_context)
         # Start periodic tasks
         self._periodic_tasks_worker = self._executor.submit(
             self._periodic_tasks.start, allow_empty=True)
@@ -96,23 +97,33 @@ class WorkerManager(object):
         # pending tasks will have its first task executed along with any other
         # first tasks for other hardwares. After the entire set of first tasks
         # completes, the set of second tasks will be executed, and so on.
-        grouped_tasks = itertools.groupby(pending_tasks,
-                key=operator.attrgetter("hardware_uuid")).values()
+        grouped_tasks = defaultdict(list)
+        for task in pending_tasks:
+            grouped_tasks[task.hardware_uuid].append(task)
         task_batches = [
-            filter(None, batch)
-            for batch in itertools.zip_longest(*grouped_tasks)
+            list(filter(None, batch))
+            for batch in itertools.zip_longest(*grouped_tasks.values())
         ]  # type: list[list[WorkerTask]]
-        workers = driver_factory.worker_types()
-        for batch in task_batches:
-            done, not_done = waiters.wait_for_all([
-                self._spawn_worker(self.process_task, task, workers)
+
+        for i, batch in enumerate(task_batches):
+            done, _ = waiters.wait_for_all([
+                self._spawn_worker(self._process_task, task, hardware_table)
                 for task in batch
             ])
+            failures = [f.exception() for f in done if f.exception()]
+            LOG.info((
+                f"Processed batch {i+1}: successfully processed "
+                f"{len(done) - len(failures)} tasks, {len(failures)} failed."))
+            print(failures)
 
-    def process_task(self, task: "WorkerTask", hardware_table: "dict[str,Hardware]"):
+    def _process_task(self, task: "WorkerTask", hardware_table: "dict[str,Hardware]"):
+        assert task.state == WorkerState.PENDING
+        pending_state_details = task.state_details.copy()
+
         task.state = WorkerState.IN_PROGRESS
         task.state_details = {}
         task.save()
+
         try:
             worker = driver_factory.get_worker_type(task.worker_type)
             hardware = hardware_table.get(task.hardware_uuid)
@@ -127,26 +138,29 @@ class WorkerManager(object):
             task.state = WorkerState.ERROR
             task.state_details = {"message": str(exc)}
         else:
-            if not isinstance(process_result, dict):
-                LOG.warning((
-                    f"{task.worker_type}: unexpected return type "
-                    f"'{type(process_result).__name__}' from processing "
-                    "function. Expected 'dict' type. Result will be wrapped."))
-                process_result = WorkerResult.Success({"result": process_result})
             if isinstance(process_result, WorkerResult.Defer):
-                pass
-            LOG.info(
-                f"{task.worker_type}: finished processing {task.hardware_uuid}")
-            task.state = WorkerState.STEADY
-            if not isinstance(process_result, dict):
+                task.state = WorkerState.PENDING
+                # Update the deferral count; we may utilize this for back-off
+                # at some point.
+                pending_state_details["defer_count"] = (
+                    pending_state_details.get("defer_count", 0) + 1)
+                task.state_details = pending_state_details
+            elif isinstance(process_result, WorkerResult.Success):
+                LOG.info(
+                    f"{task.worker_type}: finished processing {task.hardware_uuid}")
+                task.state = WorkerState.STEADY
+                task.state_details = process_result.payload
+            else:
                 LOG.warning((
                     f"{task.worker_type}: unexpected return type "
                     f"'{type(process_result).__name__}' from processing "
-                    "function. Expected 'dict' type. Result will be wrapped."))
-                process_result = {"result": process_result}
-            task.state_details = process_result
-        task.save()
+                    "function. Expected 'WorkerResult' type. Result will be "
+                    "interpreted as success result."))
+                task.state = WorkerState.STEADY
+                task.state_details = {"result": process_result}
 
+        # Commit changes to task
+        task.save()
 
     def _collect_periodic_tasks(self, workers, admin_context):
         """Collect driver-specific periodic tasks.

@@ -6,6 +6,7 @@ from doni.common import exception
 from doni.db import api as db_api
 
 FAKE_HARDWARE_TYPE = "fake-hardware"
+FAKE_WORKER_TYPE = "fake-worker"
 
 
 def get_test_hardware(**kw):
@@ -64,7 +65,6 @@ class DBFixtures(object):
                 f"Could not find Hardware {hardware_uuid} to delete")
         self.db.destroy_hardware(hw.uuid)
         self._hardwares.remove(hw)
-
 
     @property
     def hardwares(self):

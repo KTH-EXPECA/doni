@@ -21,7 +21,7 @@ class WorkerTask(base.DoniObject):
         'hardware_uuid': object_fields.UUIDField(),
         'worker_type': object_fields.StringField(),
         'state': object_fields.WorkerStateField(),
-        'details': object_fields.FlexibleDictField(),
+        'state_details': object_fields.FlexibleDictField(),
     }
 
     @property
@@ -39,7 +39,13 @@ class WorkerTask(base.DoniObject):
         """
         updates = self.obj_get_changes()
         db_worker_task = self.dbapi.update_worker_task(self.uuid, updates)
-        self._from_db_object(self._context, self, db_worker_task)
+        # NOTE(jason): We take care to ignore the "state" field from the DB,
+        # because the StateMachine oslo_versionedobject mixin does not well
+        # handle the case of setting a state to the same value it was at--this
+        # is considered invalid.
+        self._from_db_object(self._context, self, db_worker_task, fields=[
+            f for f in self.fields.keys() if f != "state"
+        ])
 
     @classmethod
     def list_pending(cls, context: "RequestContext") -> "list[WorkerTask]":
@@ -48,4 +54,5 @@ class WorkerTask(base.DoniObject):
 
     @classmethod
     def list_for_hardware(cls, context: "RequestContext", hardware_uuid: str) -> "list[WorkerTask]":
-        pass
+        db_workers = cls.dbapi.get_worker_tasks_for_hardware(hardware_uuid)
+        return cls._from_db_object_list(context, db_workers)

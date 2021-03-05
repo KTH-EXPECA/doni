@@ -159,6 +159,11 @@ class DriverLoadError(DoniException):
                 "loaded. Reason: %(reason)s.")
 
 
+class DriversNotLoaded(DoniException):
+    _msg_fmt = ("Worker %(host)s cannot be started "
+                "because no hardware types were loaded.")
+
+
 class WorkerTaskNotFound(NotFound):
     _msg_fmt = ("WorkerTask %(worker)s could not be found.")
 

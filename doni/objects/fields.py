@@ -57,7 +57,8 @@ class WorkerStateField(object_fields.StateMachine):
         },
         IN_PROGRESS: {
             STEADY,
-            ERROR
+            PENDING,
+            ERROR,
         },
         ERROR: {
             PENDING,

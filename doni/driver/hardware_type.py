@@ -27,3 +27,4 @@ class Baremetal(HardwareType):
 class Fake(HardwareType):
     """A fake hardware type, useful for development and testing.
     """
+    enabled_workers = ("fake-worker",)

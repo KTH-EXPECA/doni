@@ -10,13 +10,14 @@ from osprofiler import sqlalchemy as osp_sqlalchemy
 import sqlalchemy as sa
 from sqlalchemy.orm.exc import NoResultFound
 
+from doni.common import driver_factory
 from doni.common import exception
 from doni.conf import CONF
 from doni.db import models
+from doni.worker import WorkerState
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
-    from doni.worker import WorkerState
     from sqlalchemy.orm.session import Session
     from typing import ContextManager
 
@@ -79,17 +80,31 @@ class Connection(object):
         pass
 
     @oslo_db_api.retry_on_deadlock
-    def create_hardware(self, values):
+    def create_hardware(self, values: dict) -> "models.Hardware":
         if 'uuid' not in values:
             values['uuid'] = uuidutils.generate_uuid()
 
         hardware = models.Hardware()
         hardware.update(values)
+
         # Create one worker for each worker type we have.
+        hardware_type = driver_factory.get_hardware_type(hardware.hardware_type)
+        worker_tasks = []
+        for worker_type in hardware_type.enabled_workers:
+            task = models.WorkerTask()
+            task.update({
+                "uuid": uuidutils.generate_uuid(),
+                "hardware_uuid": hardware.uuid,
+                "worker_type": worker_type,
+                "state": WorkerState.PENDING,
+            })
+            worker_tasks.append(task)
 
         with _session_for_write() as session:
             try:
                 session.add(hardware)
+                for task in worker_tasks:
+                    session.add(task)
                 session.flush()
             except db_exc.DBDuplicateEntry as exc:
                 if 'name' in exc.columns:
@@ -98,7 +113,7 @@ class Connection(object):
         return hardware
 
     @oslo_db_api.retry_on_deadlock
-    def update_hardware(self, hardware_uuid, values):
+    def update_hardware(self, hardware_uuid: str, values: dict) -> "models.Hardware":
         if 'uuid' in values:
             msg = ("Cannot overwrite UUID for existing Hardware.")
             raise exception.InvalidParameterValue(msg=msg)
@@ -116,7 +131,7 @@ class Connection(object):
             return query.one()
 
     @oslo_db_api.retry_on_deadlock
-    def destroy_hardware(self, hardware_uuid):
+    def destroy_hardware(self, hardware_uuid: str):
         with _session_for_write() as session:
             query = session.query(models.Hardware).filter_by(uuid=hardware_uuid)
             try:
@@ -129,21 +144,21 @@ class Connection(object):
 
             query.delete()
 
-    def get_hardware_by_id(self, hardware_id):
+    def get_hardware_by_id(self, hardware_id) -> "models.Hardware":
         query = model_query(models.Hardware).filter_by(id=hardware_id)
         try:
             return query.one()
         except NoResultFound:
             raise exception.HardwareNotFound(hardware=hardware_id)
 
-    def get_hardware_by_uuid(self, hardware_uuid):
+    def get_hardware_by_uuid(self, hardware_uuid: str) -> "models.Hardware":
         query = model_query(models.Hardware).filter_by(uuid=hardware_uuid)
         try:
             return query.one()
         except NoResultFound:
             raise exception.HardwareNotFound(hardware=hardware_uuid)
 
-    def get_hardware_by_name(self, hardware_name):
+    def get_hardware_by_name(self, hardware_name: str) -> "models.Hardware":
         query = model_query(models.Hardware).filter_by(name=hardware_name)
         try:
             return query.one()
@@ -151,21 +166,26 @@ class Connection(object):
             raise exception.HardwareNotFound(hardware=hardware_name)
 
     def get_hardware_list(self, limit=None, marker=None, sort_key=None,
-                          sort_dir=None):
+                          sort_dir=None) -> "list[models.Hardware]":
         return _paginate_query(
             models.Hardware, limit, marker, sort_key, sort_dir)
 
-    def get_availability_window_list(self, hardware_uuid):
+    def get_availability_window_list(self, hardware_uuid: str) -> "list[models.AvailabilityWindow]":
         query = model_query(models.AvailabilityWindow).filter_by(hardware_uuid=hardware_uuid)
         # TODO: how to communicate that hardware doesn't exist?
         return query.all()
 
-    def get_worker_tasks_in_state(self, state: "WorkerState"):
+    def get_worker_tasks_in_state(self, state: "WorkerState") -> "list[models.WorkerTask]":
         query = model_query(models.WorkerTask).filter_by(state=state)
         return query.all()
 
+    def get_worker_tasks_for_hardware(self, hardware_uuid: str) -> "list[models.WorkerTask]":
+        query = model_query(models.WorkerTask).filter_by(hardware_uuid=hardware_uuid)
+        # TODO: how to communicate that hardware doesn't exist?
+        return query.all()
+
     @oslo_db_api.retry_on_deadlock
-    def update_worker_task(self, worker_task_uuid, values):
+    def update_worker_task(self, worker_task_uuid: str, values: dict) -> "models.WorkerTask":
         if 'uuid' in values:
             msg = ("Cannot overwrite UUID for existing WorkerTask.")
             raise exception.InvalidParameterValue(msg=msg)

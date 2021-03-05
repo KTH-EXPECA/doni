@@ -53,6 +53,7 @@ baremetal = "doni.driver.hardware_type:Baremetal"
 
 [tool.poetry.plugins."doni.driver.worker_type"]
 "blazar.physical_host" = "doni.driver.worker.blazar:BlazarPhysicalHostWorker"
+fake-worker = "doni.driver.worker.fake:FakeWorker"
 ironic = "doni.driver.worker.ironic:IronicWorker"
 
 [tool.poetry.plugins."oslo.config.opts"]
