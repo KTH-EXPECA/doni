@@ -11,13 +11,6 @@ if TYPE_CHECKING:
     from doni.common.context import RequestContext
 
 
-@pytest.fixture(autouse=True)
-def _use_fake_hardware(set_defaults):
-    set_defaults(
-        enabled_hardware_types=[utils.FAKE_HARDWARE_TYPE],
-        enabled_worker_types=[utils.FAKE_WORKER_TYPE])
-
-
 @pytest.fixture
 def manager():
     _manager = WorkerManager("fake-host")
@@ -45,4 +38,6 @@ def test_process_pending_success(mocker: "MockerFixture", manager: "WorkerManage
     assert len(WorkerTask.list_pending(admin_context)) == 0
     tasks = WorkerTask.list_for_hardware(admin_context, database.hardwares[0]["uuid"])
     assert len(tasks) == 1
+    from doni.common import driver_factory
+    print(driver_factory.worker_types())
     assert tasks[0].state == WorkerState.STEADY

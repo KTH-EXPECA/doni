@@ -6,6 +6,7 @@ import pytest
 
 from doni.common import config as doni_config
 from doni.common import context as doni_context
+from doni.common import driver_factory
 from doni.conf import CONF
 from doni.db import migration
 from doni.db import models
@@ -27,22 +28,20 @@ def config():
 
 
 @pytest.fixture
-def set_defaults(config):
-    def _wrapped(**kw):
-        """Set default values of config options."""
-        group = kw.pop('group', None)
-        for o, v in kw.items():
-            config.set_default(o, v, group=group)
+def set_config(config: "config_fixture.Config"):
+    def _wrapped(**kwargs):
+        """Override values of config options."""
+        return config.config(**kwargs)
     return _wrapped
 
 
 @pytest.fixture
-def database(set_defaults):
+def database(set_config):
     """Automatically set up a temporary SQLite DB for tests in this module.
     """
-    set_defaults(connection="sqlite://",
-                 sqlite_synchronous=False,
-                 group='database')
+    set_config(connection="sqlite://",
+               sqlite_synchronous=False,
+               group='database')
     if migration.version():
         return
     engine = enginefacade.writer.get_engine()
@@ -56,8 +55,23 @@ def database(set_defaults):
 
 
 @pytest.fixture(autouse=True)
-def _init_config(set_defaults):
-    set_defaults(host='fake-mini', debug=True)
+def _init_test_env(set_config):
+    """Initialize environment and configuration for a test.
+
+    This fixture is scoped to each test, meaning it should ensure a clean
+    environment for each execution. Its main job is to ensure the overrides
+    are in place for the test hardware and worker types. The extension
+    manager is also cleared after each test run; this ensures that any tests
+    that wish to override the enabled hardware types can do so (the extension
+    manager caches entrypoints and filters based on the enabled_* conf option.)
+    """
+    set_config(
+        host='fake-mini',
+        debug=True,
+        enabled_hardware_types=[utils.FAKE_HARDWARE_TYPE],
+        enabled_worker_types=[utils.FAKE_WORKER_TYPE])
     # This is a bit of a hack; this function does a lot more than
     # parse command line arguments! ;_;
     doni_config.parse_args([], default_config_files=[])
+    yield
+    driver_factory.HardwareTypeFactory._extension_manager = None

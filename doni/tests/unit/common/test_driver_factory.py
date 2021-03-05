@@ -14,16 +14,8 @@ class TestHardwareType(object):
 
 
 @pytest.fixture(autouse=True)
-def _use_fake_hardware(set_defaults):
-    set_defaults(enabled_hardware_types=[TEST_HARDWARE_TYPE])
-
-
-@pytest.fixture()
-def init_factory():
-    driver_factory.HardwareTypeFactory._extension_manager = None
-    yield driver_factory.HardwareTypeFactory
-    # Ensure that these tests don't pollute the singleton for other tests
-    driver_factory.HardwareTypeFactory._extension_manager = None
+def _use_fake_hardware(set_config):
+    set_config(enabled_hardware_types=[TEST_HARDWARE_TYPE])
 
 
 def _driver_that_raises(exc, driver_name=TEST_HARDWARE_TYPE):
@@ -53,25 +45,25 @@ def make_fake_extension_manager(mocker: "MockerFixture", extensions=[]):
         .side_effect) = _create_extension_manager
 
 
-def test_driver_load_error_if_driver_enabled(mocker: "MockerFixture", init_factory):
+def test_driver_load_error_if_driver_enabled(mocker: "MockerFixture"):
     make_fake_extension_manager(mocker, [
         _driver_that_raises(exception.DriverLoadError("uhoh"))
     ])
     with pytest.raises(exception.DriverLoadError):
-        init_factory()
+        driver_factory.HardwareTypeFactory()
 
 
-def test_wrap_in_driver_load_error_if_driver_enabled(mocker: "MockerFixture", init_factory):
+def test_wrap_in_driver_load_error_if_driver_enabled(mocker: "MockerFixture"):
     make_fake_extension_manager(mocker, [
         _driver_that_raises(NameError())
     ])
     with pytest.raises(exception.DriverLoadError):
-        init_factory()
+        driver_factory.HardwareTypeFactory()
 
 
-def test_no_driver_load_error_if_driver_disabled(mocker: "MockerFixture", init_factory):
+def test_no_driver_load_error_if_driver_disabled(mocker: "MockerFixture"):
     make_fake_extension_manager(mocker, [
         TestHardwareType,
         _driver_that_raises(NameError(), driver_name="should-be-disabled")
     ])
-    init_factory()
+    driver_factory.HardwareTypeFactory()
