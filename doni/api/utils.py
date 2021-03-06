@@ -1,12 +1,15 @@
 from flask import request, make_response
 import jsonpatch
+from oslo_utils import uuidutils
 
 from doni.common import exception
 from doni.objects import fields as doni_fields
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
+    from doni.common.context import RequestContext
     from doni.objects.base import DoniObject
+    from typing import Type
 
 
 _JSONPATCH_EXCEPTIONS = (jsonpatch.JsonPatchConflict,
@@ -84,14 +87,45 @@ def make_error_response(message=None, status_code=None):
     }, status_code)
 
 
-def apply_jsonpatch(object: "DoniObject", patch):
+def apply_jsonpatch(state: dict, patch):
     """Apply a JSON patch, one operation at a time.
 
     If the patch fails to apply, this allows us to determine which operation
     failed, making the error message a little less cryptic.
 
     Args:
-        object (DoniObject): The RPC object to update.
+        state (dict): The state to apply the JSON patch to. State is expected
+            to be key/value pairs where keys are field names and values are
+            DoniObject instances or lists of instances. These will be flattened
+            via ``as_dict``. If the state has "self" key, the resulting dict
+            is flattened directly into the state. For example, for the state::
+
+                state = {"self": hardware}
+
+            ultimately it would be converted to the following JSON document
+            before applying the patch::
+
+                {
+                    "uuid": "...",
+                    "name", "...",
+                    ...hardware props
+                }
+
+            Whereas the following::
+
+                state = {"self": hardware, "extra": other_obj}
+
+            would result in::
+
+                {
+                    "uuid": "...",
+                    "name": "...",
+                    ...hardware props,
+                    "extra": {
+                        ...extra props
+                    }
+                }
+
         patch (list): The JSON patch to apply.
 
     Returns:
@@ -101,15 +135,23 @@ def apply_jsonpatch(object: "DoniObject", patch):
         PatchError: If the patch fails to apply.
         ClientSideError: If the patch adds a new root attribute.
     """
-    doc = object.as_dict()
+    doc = {}
+    self_ref = state.pop("self", None)
+    if self_ref:
+        doc.update(**self_ref.as_dict())
+    for field, obj in state.items():
+        if isinstance(obj, list):
+            doc[field] = [item.as_dict() for item in obj]
+        else:
+            doc[field] = obj.as_dict()
 
     # Prevent removal of root attributes.
     for p in patch:
-        if p['op'] == 'add' and p['path'].count('/') == 1:
-            if p['path'].lstrip('/') not in doc:
-                msg = ('Adding a new attribute (%s) to the root of '
-                        'the resource is not allowed')
-                raise exception.PatchError(patch=p, reason=(msg % p["path"]))
+        if (p['op'] == 'add' and p['path'].count('/') == 1 and
+            p['path'].lstrip('/') not in doc):
+            msg = ('Adding a new attribute (%s) to the root of '
+                    'the resource is not allowed')
+            raise exception.PatchError(patch=p, reason=(msg % p["path"]))
 
     # Apply operations one at a time, to improve error reporting.
     for patch_op in patch:
@@ -118,10 +160,56 @@ def apply_jsonpatch(object: "DoniObject", patch):
         except _JSONPATCH_EXCEPTIONS as e:
             raise exception.PatchError(patch=patch_op, reason=e)
 
+    return doc
+
+
+def apply_patch_updates(object: "DoniObject", updates: dict):
+    """Apply any changes from a computed update patch directly to an object.
+
+    This will mutate the object's fields. The object can then be saved later
+    via ``save``.
+
+    Args:
+        object (DoniObject): The object to update.
+        updates (dict): A set of updated field values. Any updates for fields
+            not declared on the object are silently ignored.
+    """
     for field in object.fields:
-        patched_val = doc.get(field)
-        if field in object and object[field] != patched_val:
+        patched_val = updates.get(field)
+        if getattr(object, field) != patched_val:
             setattr(object, field, patched_val)
+
+
+def apply_patch_updates_to_list(
+    objects: "list[DoniObject]",
+    updates: "list[dict]",
+    obj_class: "Type[DoniObject]"=None,
+    context: "RequestContext"=None,
+    primary_key: str="uuid"
+) -> "tuple[list[DoniObject],list[DoniObject],list[DoniObject]]":
+    obj_map = {getattr(o, primary_key): o for o in objects}
+    # Generate a default primary key if none exists; this will indicate that
+    # this update corresponds to what should be a new object.
+    update_map = {u.get(primary_key, uuidutils.generate_uuid()): u for u in updates}
+    uniq_objs = set(obj_map.keys())
+    uniq_updates = set(update_map.keys())
+
+    to_add = []
+    to_update = []
+    to_remove = []
+
+    for key in uniq_updates - uniq_objs:
+        to_add.append(obj_class(context, **update_map[key]))
+
+    for key in uniq_updates & uniq_objs:
+        obj = obj_map[key]
+        apply_patch_updates(obj, update_map[key])
+        to_update.append(obj)
+
+    for key in uniq_objs - uniq_updates:
+        to_remove.append(obj_map[key])
+
+    return to_add, to_update, to_remove
 
 
 def get_patch_values(patch, path) -> "list[any]":

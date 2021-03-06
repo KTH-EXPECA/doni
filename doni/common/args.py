@@ -1,10 +1,36 @@
 from functools import partial, wraps
 import inspect
 
-from flask import request
 import jsonschema
+from oslo_utils import uuidutils
 
 from doni.common import exception
+
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from typing import Optional
+
+
+def uuid(name, value) -> "Optional[str]":
+    """Validate that the value is a UUID
+
+    Args:
+        name (str): Name of the argument
+        value (any): A UUID string value
+
+    Returns:
+        The value, or None if value is None
+
+    Raises:
+        InvalidParameterValue: if the value is not a valid UUID
+    """
+    if value is None:
+        return
+    if not uuidutils.is_uuid_like(value):
+        raise exception.InvalidParameterValue(
+            ('Expected UUID for %s: %s') % (name, value))
+    return value
+
 
 # Some JSON schema helpers
 STRING = {"type": "string"}
@@ -102,11 +128,8 @@ def validate(*args, **kwargs):
                 raise exception.InvalidParameterValue(
                     ('Unexpected arguments: %s') % ', '.join(extra_args))
 
-            # Add JSON body for validation as positional arg
-            if "json_body" in validators:
-                args.append(request.json)
-
             args_len = len(args)
+            print(f"kwargs={kwargs}")
 
             for i, param in enumerate(params):
                 val_function = validators.get(param.name)

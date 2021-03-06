@@ -6,7 +6,9 @@ from doni.api import utils as api_utils
 from doni.common import args
 from doni.common import driver_factory
 from doni.common.policy import authorize
+from doni.objects.availability_window import AvailabilityWindow
 from doni.objects.hardware import Hardware
+from doni.objects.transaction import transaction
 
 bp = Blueprint("hardware", __name__)
 
@@ -81,35 +83,59 @@ def get_all():
     }
 
 
-@route("/<uuid:hardware_uuid>/", methods=["GET"], blueprint=bp)
-def get_one(hardware_uuid):
+@route("/<hardware_uuid>/", methods=["GET"], blueprint=bp)
+@args.validate(hardware_uuid=args.uuid)
+def get_one(hardware_uuid=None):
     ctx = request.context
-    hardware = Hardware.get_by_uuid(ctx, str(hardware_uuid))
+    hardware = Hardware.get_by_uuid(ctx, hardware_uuid)
     authorize("hardware:get", ctx, hardware)
     return api_utils.object_to_dict(hardware, fields=DEFAULT_FIELDS)
 
 
-@route("/", methods=["POST"], blueprint=bp)
-@args.validate(json_body=hardware_validator())
-def create(json_body):
+@route("/", methods=["POST"], json_body="hardware_params", blueprint=bp)
+@args.validate(hardware_params=hardware_validator())
+def create(hardware_params=None):
     ctx = request.context
 
-    hardware = Hardware(ctx, **json_body)
+    hardware = Hardware(ctx, **hardware_params)
     authorize("hardware:create", ctx, hardware)
     hardware.create()
 
     return api_utils.object_to_dict(hardware, fields=DEFAULT_FIELDS), 201
 
 
-@route("/<uuid:hardware_uuid>/", methods=["PATCH"], blueprint=bp)
-@args.validate(json_body=args.schema(args.PATCH))
-def update(hardware_uuid, json_body):
+@route("/<hardware_uuid>/", methods=["PATCH"], json_body="patch", blueprint=bp)
+@args.validate(hardware_uuid=args.uuid, patch=args.schema(args.PATCH))
+def update(hardware_uuid=None, patch=None):
     ctx = request.context
-    patch = json_body
+    print(hardware_uuid)
 
-    hardware = Hardware.get_by_uuid(ctx, str(hardware_uuid))
+    hardware = Hardware.get_by_uuid(ctx, hardware_uuid)
     authorize("hardware:update", ctx, hardware)
-    api_utils.apply_jsonpatch(hardware, patch)
-    hardware.save()
+
+    state = {
+        "self": hardware,
+    }
+
+    if api_utils.is_path_updated(patch, "/availability"):
+        # If updating availability windows, pull current values to compute the
+        # delta from the patch.
+        state["availability"] = AvailabilityWindow.list(ctx, hardware_uuid)
+
+    patched_state = api_utils.apply_jsonpatch(state, patch)
+
+    with transaction():
+        api_utils.apply_patch_updates(hardware, patched_state)
+        hardware.save()
+
+        if "availability" in patched_state:
+            to_add, to_update, to_remove = api_utils.apply_patch_updates_to_list(
+                state["availability"], patched_state["availability"])
+            for window in to_add:
+                window.create()
+            for window in to_update:
+                window.save()
+            for window in to_remove:
+                window.destroy()
 
     return api_utils.object_to_dict(hardware, fields=DEFAULT_FIELDS)

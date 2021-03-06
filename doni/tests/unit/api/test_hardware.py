@@ -76,3 +76,18 @@ def test_policy_disallow(mocker, user_auth_headers, path, req_kwargs,
     mock_authorize.side_effect = PolicyNotAuthorized("fakerule", {}, {})
     res = client.open(path, headers=user_auth_headers, **req_kwargs)
     assert res.status_code == 403
+
+
+def test_update_hardware(mocker, user_auth_headers, client: "FlaskClient",
+                         database: "utils.DBFixtures"):
+    database.add_hardware(uuid=FAKE_UUID)
+    mock_authorize = mocker.patch("doni.api.hardware.authorize")
+    patch = [{"path": "/name", "op": "replace", "value": "new-fake-name"}]
+    res = client.patch(f"/v1/hardware/{FAKE_UUID}/",
+        headers=user_auth_headers,
+        content_type="application/json",
+        data=json.dumps(patch))
+    assert res.status_code == 200
+    assert mock_authorize.called_once_with("hardware:update")
+    assert res.json["uuid"] == FAKE_UUID
+    assert res.json["name"] == "new-fake-name"

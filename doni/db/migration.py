@@ -89,7 +89,7 @@ def revision(message=None, autogenerate=False, config=None):
     Args:
         message (str): Text that will be used for migration title
         autogenerate (bool): Whether to generate diff based on current database
-            state
+            state.
     """
     config = config or _alembic_config()
     return alembic.command.revision(config, message=message,

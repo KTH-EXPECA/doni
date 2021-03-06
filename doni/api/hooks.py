@@ -58,7 +58,7 @@ class ContextMiddleware(object):
         return res
 
 
-def route(rule, blueprint: "Blueprint"=None, **options):
+def route(rule, blueprint: "Blueprint"=None, json_body=None, **options):
     """Decorator which exposes a function as a Flask handler and handles errors.
 
     This is essentially a combination of Flask's default ``route`` decorator
@@ -69,16 +69,22 @@ def route(rule, blueprint: "Blueprint"=None, **options):
     Args:
         rule (str): The routing rule to expose this handler on.
         blueprint (Blueprint): The Flask blueprint to hang the route on.
+        json_body (str): When set to the name of a handler argument, the request
+            body will be parsed as JSON and passed to the handler as this
+            named keyword argument. Defaults to None, meaning request body is
+            not parsed automatically and passed to the handler.
         **options: Additional options passed to the Flask ``route`` decorator.
 
     Returns:
         A decorated handler function, which is registered on the Flask
-        blueprint and will translate known exceptions to HTTP status codes.
+            blueprint and will translate known exceptions to HTTP status codes.
     """
     def inner_function(function):
         @wraps(function)
         def inner_check_args(*args, **kwargs):
             try:
+                if json_body:
+                    kwargs[json_body] = request.json
                 return function(*args, **kwargs)
             except PolicyNotAuthorized as exc:
                 return make_error_response(str(exc), 403)
@@ -86,7 +92,8 @@ def route(rule, blueprint: "Blueprint"=None, **options):
                 return make_error_response(str(exc), 404)
             except Exception as exc:
                 # FIXME: why won't this log for tests and we have to print()?
-                print(exc)
+                import traceback
+                traceback.print_exc()
                 LOG.error(f"Unhandled error on {rule}: {exc}")
                 return make_error_response("An unknown error occurred.", 500)
         return blueprint.route(rule, **options)(inner_check_args)
