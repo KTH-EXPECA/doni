@@ -6,14 +6,16 @@ from doni.api import utils as api_utils
 from doni.common import args
 from doni.common import driver_factory
 from doni.common.policy import authorize
+from doni.objects import transaction
 from doni.objects.availability_window import AvailabilityWindow
 from doni.objects.hardware import Hardware
-from doni.objects.transaction import transaction
+from doni.objects.worker_task import WorkerTask
 
 bp = Blueprint("hardware", __name__)
 
 
 DEFAULT_FIELDS = ('name', 'project_id', 'hardware_type', 'properties',)
+WORKER_TASK_DEFAULT_FIELDS = ('worker_type', 'state', 'state_details',)
 
 HARDWARE_SCHEMA = {
     'type': 'object',
@@ -89,7 +91,18 @@ def get_one(hardware_uuid=None):
     ctx = request.context
     hardware = Hardware.get_by_uuid(ctx, hardware_uuid)
     authorize("hardware:get", ctx, hardware)
-    return api_utils.object_to_dict(hardware, fields=DEFAULT_FIELDS)
+    response = api_utils.object_to_dict(hardware, fields=DEFAULT_FIELDS)
+    response["workers"] = [
+        api_utils.object_to_dict(
+            wt,
+            include_created_at=False,
+            include_updated_at=False,
+            include_uuid=False,
+            fields=WORKER_TASK_DEFAULT_FIELDS
+        )
+        for wt in WorkerTask.list_for_hardware(ctx, hardware_uuid)
+    ]
+    return response
 
 
 @route("/", methods=["POST"], json_body="hardware_params", blueprint=bp)

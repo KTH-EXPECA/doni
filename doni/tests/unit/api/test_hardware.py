@@ -28,8 +28,16 @@ def test_get_one_hardware(mocker, user_auth_headers, client: "FlaskClient",
     assert res.json["uuid"] == hw["uuid"]
     assert res.json["name"] == hw["name"]
     assert res.json["project_id"] == hw["project_id"]
+
     # Don't return internal IDs
     assert "id" not in res.json
+
+    # Test nested workers object(s)
+    workers = res.json["workers"]
+    assert len(workers) == 1
+    assert workers[0]["worker_type"] == utils.FAKE_WORKER_TYPE
+    assert isinstance(workers[0]["state_details"], dict)
+
     assert mock_authorize.called_once_with("hardware:get")
 
 

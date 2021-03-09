@@ -60,9 +60,8 @@ def object_to_dict(obj, include_created_at=True, include_updated_at=True,
     for field in all_fields:
         value = to_dict[field] = getattr(obj, field)
         empty_value = None
-        if isinstance(obj.fields[field], doni_fields.DateTimeField):
-            if value:
-                value = value.isoformat()
+        if isinstance(obj.fields[field], doni_fields.DateTimeField) and value:
+            value = value.isoformat()
 
         if value is not None:
             to_dict[field] = value
