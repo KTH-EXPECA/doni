@@ -1,1 +1,14 @@
-Generic single-database configuration.
+Please see https://alembic.readthedocs.org/en/latest/index.html for general documentation
+
+To create alembic migrations use::
+
+  doni-dbsync revision --message --autogenerate
+
+Stamp db with most recent migration version, without actually running migrations::
+
+  doni-dbsync stamp --revision head
+
+Upgrade can be performed by::
+
+  doni-dbsync upgrade
+  doni-dbsync upgrade --revision head
