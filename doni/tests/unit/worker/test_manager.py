@@ -46,5 +46,4 @@ def test_process_pending_success(mocker: "MockerFixture", manager: "WorkerManage
     tasks = WorkerTask.list_for_hardware(admin_context, database.hardwares[0]["uuid"])
     assert len(tasks) == 1
     from doni.common import driver_factory
-    print(driver_factory.worker_types())
     assert tasks[0].state == WorkerState.STEADY

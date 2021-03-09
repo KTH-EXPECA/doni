@@ -108,7 +108,6 @@ def create(hardware_params=None):
 @args.validate(hardware_uuid=args.uuid, patch=args.schema(args.PATCH))
 def update(hardware_uuid=None, patch=None):
     ctx = request.context
-    print(hardware_uuid)
 
     hardware = Hardware.get_by_uuid(ctx, hardware_uuid)
     authorize("hardware:update", ctx, hardware)
