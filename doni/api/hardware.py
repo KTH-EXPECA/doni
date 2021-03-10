@@ -10,6 +10,7 @@ from doni.objects import transaction
 from doni.objects.availability_window import AvailabilityWindow
 from doni.objects.hardware import Hardware
 from doni.objects.worker_task import WorkerTask
+from doni.worker import WorkerField
 
 bp = Blueprint("hardware", __name__)
 
@@ -29,59 +30,106 @@ HARDWARE_SCHEMA = {
     'additionalProperties': False,
 }
 
-_HARDWARE_VALIDATOR = None
-
 
 def hardware_validator():
-    global _HARDWARE_VALIDATOR
-    if not _HARDWARE_VALIDATOR:
-        enabled_workers = driver_factory.worker_types()
-        enabled_hardware_types = driver_factory.hardware_types()
+    enabled_workers = driver_factory.worker_types()
+    enabled_hardware_types = driver_factory.hardware_types()
 
-        hardware_type_schemas = []
-        for hwt_name, hwt in enabled_hardware_types.items():
-            worker_schemas = [
-                worker.validator_schema
-                for worker_name, worker in enabled_workers.items()
-                if worker_name in hwt.enabled_workers
-            ]
-            hwt_schema = {
-                "type": "object",
-                "properties": {
-                    "hardware_type": {"const": hwt_name}
-                }
+    hardware_type_schemas = []
+    for hwt_name, hwt in enabled_hardware_types.items():
+        properties_schema = {
+            "type": "object",
+            # Can optionally add some fields that should always just be
+            # allowed on Hardware entities here.
+            "properties": {},
+            "required": [],
+            # Disallow keys that don't match any worker
+            "additionalProperties": False,
+        }
+        for worker_name, worker in enabled_workers.items():
+            if worker_name not in hwt.enabled_workers:
+                continue
+            worker_schema = worker.json_schema()
+            properties_schema["properties"].update(worker_schema["properties"])
+            properties_schema["required"].extend(worker_schema["required"])
+
+        # JSONSchema doesn't like 'required' to be an empty array.
+        if not properties_schema["required"]:
+            del properties_schema["required"]
+
+        hardware_type_schemas.append({
+            "type": "object",
+            "properties": {
+                "hardware_type": {"const": hwt_name},
+                "properties": properties_schema,
             }
-            # Validate nested properties against worker validators
-            if worker_schemas:
-                hwt_schema["properties"]["properties"] = {
-                    "allOf": worker_schemas
-                }
-            hardware_type_schemas.append(hwt_schema)
-
-        _HARDWARE_VALIDATOR = args.schema({
-            "definitions": {
-                "hardware": HARDWARE_SCHEMA
-            },
-            "allOf": [
-                # Check base hardware schema
-                {"$ref": "#/definitions/hardware"},
-                # Check schema for hardware types
-                {"oneOf": hardware_type_schemas},
-            ]
         })
 
-    return _HARDWARE_VALIDATOR
+    return args.schema({
+        "definitions": {
+            "hardware": HARDWARE_SCHEMA
+        },
+        "allOf": [
+            # Check base hardware schema
+            {"$ref": "#/definitions/hardware"},
+            # Check schema for hardware types
+            {"oneOf": hardware_type_schemas},
+        ]
+    })
+
+
+def hardware_serializer(with_private_fields=False):
+    """Create a hardware serializer, which can be used to render API responses.
+
+    Args:
+        with_private_fields (bool): Whether the serializer should serialize
+            'private' fields declared by workers valid for the given hardware.
+            Defaults to False.
+
+    Returns:
+        A function that takes a Hardware object as its sole argument and returns
+            a JSON-safe dictionary value representing the serialized object.
+    """
+    enabled_workers = driver_factory.worker_types()
+    enabled_hardware_types = driver_factory.hardware_types()
+
+    def _mask_sensitive(value):
+        return "*" * 12
+
+    def _serialize(hardware: "Hardware"):
+        hardware_json = api_utils.object_to_dict(hardware, fields=DEFAULT_FIELDS)
+        properties = hardware_json["properties"].copy()
+
+        hwt = enabled_hardware_types[hardware.hardware_type]
+        worker_fields: "list[WorkerField]" = hwt.default_fields.copy()
+        for worker_type in hwt.enabled_workers:
+            worker_fields.extend(enabled_workers[worker_type].fields)
+
+        # Filter all hardware properties down based on what workers are active
+        # for the given hardware.
+        filtered_properties = {}
+        for field in worker_fields:
+            if with_private_fields or not field.private:
+                value = properties.get(field.name, field.default)
+                if value is None:
+                    # Don't serialize 'None'
+                    continue
+                filtered_properties[field.name] = (
+                    _mask_sensitive(value) if field.sensitive else value)
+
+        hardware_json["properties"] = filtered_properties
+        return hardware_json
+
+    return _serialize
 
 
 @route("/", methods=["GET"], blueprint=bp)
 def get_all():
     ctx = request.context
     authorize("hardware:get", ctx)
+    serialize = hardware_serializer(with_private_fields=True)
     return {
-        "hardware": [
-            api_utils.object_to_dict(hw, fields=DEFAULT_FIELDS)
-            for hw in Hardware.list(ctx)
-        ],
+        "hardware": [serialize(hw) for hw in Hardware.list(ctx)],
     }
 
 
@@ -91,7 +139,8 @@ def get_one(hardware_uuid=None):
     ctx = request.context
     hardware = Hardware.get_by_uuid(ctx, hardware_uuid)
     authorize("hardware:get", ctx, hardware)
-    response = api_utils.object_to_dict(hardware, fields=DEFAULT_FIELDS)
+    serialize = hardware_serializer(with_private_fields=True)
+    response = serialize(hardware)
     response["workers"] = [
         api_utils.object_to_dict(
             wt,
@@ -112,9 +161,10 @@ def create(hardware_params=None):
 
     hardware = Hardware(ctx, **hardware_params)
     authorize("hardware:create", ctx, hardware)
+    serialize = hardware_serializer(with_private_fields=True)
     hardware.create()
 
-    return api_utils.object_to_dict(hardware, fields=DEFAULT_FIELDS), 201
+    return serialize(hardware), 201
 
 
 @route("/<hardware_uuid>/", methods=["PATCH"], json_body="patch", blueprint=bp)
@@ -124,6 +174,7 @@ def update(hardware_uuid=None, patch=None):
 
     hardware = Hardware.get_by_uuid(ctx, hardware_uuid)
     authorize("hardware:update", ctx, hardware)
+    serialize = hardware_serializer(with_private_fields=True)
 
     state = {
         "self": hardware,
@@ -150,4 +201,4 @@ def update(hardware_uuid=None, patch=None):
             for window in to_remove:
                 window.destroy()
 
-    return api_utils.object_to_dict(hardware, fields=DEFAULT_FIELDS)
+    return serialize(hardware)

@@ -39,6 +39,19 @@ PORT_RANGE = {"type": "integer", "minimum": 1, "maximum": 65536}
 HOST_OR_IP = {"oneOf": [{"type": "string", "format": "hostname"},
                         {"type": "string", "format": "ipv4"},
                         {"type": "string", "format": "ipv6"}]}
+NETWORK_DEVICE = {
+    "type": "object",
+    "properties": {
+        "name": STRING,
+        # There is no mac_address format in jsonschema yet[1]
+        # [1]: https://github.com/json-schema-org/json-schema-spec/issues/540
+        "mac_address": STRING,
+        "vendor": STRING,
+        "model": STRING,
+    },
+    "required": ["name", "mac_address"],
+    "additionalProperties": False,
+}
 PATCH = {
     'type': 'array',
     'items': {
@@ -53,6 +66,11 @@ PATCH = {
     }
 }
 
+
+def enum(values, type="string"):
+    return {"type": type, "enum": values}
+
+
 def optional(schema):
     return {
         "anyOf": [
@@ -60,6 +78,10 @@ def optional(schema):
             {"type": "null"},
         ]
     }
+
+
+def array(schema):
+    return {"type": "array", "items": schema}
 
 
 def _validate_schema(name, value, schema):

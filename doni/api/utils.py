@@ -1,5 +1,6 @@
 from flask import request, make_response
 import jsonpatch
+from oslo_log import log
 from oslo_utils import uuidutils
 
 from doni.common import exception
@@ -11,6 +12,8 @@ if TYPE_CHECKING:
     from doni.objects.base import DoniObject
     from typing import Type
 
+
+LOG = log.getLogger(__name__)
 
 _JSONPATCH_EXCEPTIONS = (jsonpatch.JsonPatchConflict,
                          jsonpatch.JsonPatchException,

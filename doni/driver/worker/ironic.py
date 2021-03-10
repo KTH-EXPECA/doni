@@ -1,5 +1,6 @@
 from doni.common import args
 from doni.worker import BaseWorker
+from doni.worker import WorkerField
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
@@ -9,16 +10,22 @@ if TYPE_CHECKING:
 
 class IronicWorker(BaseWorker):
 
-    validator_schema = {
-        "type": "object",
-        "properties": {
-            "ipmi_address": args.HOST_OR_IP,
-            "ipmi_username": args.STRING,
-            "ipmi_password": args.STRING,
-            "ipmi_terminal_port": args.PORT_RANGE,
-        },
-        "required": ["ipmi_address", "ipmi_username", "ipmi_password"],
-    }
+    fields = [
+        WorkerField("baremetal_driver", schema=args.enum(["ipmi"]),
+            default="ipmi", private=True, description=(
+                "The Ironic hardware driver that will control this node. See "
+                "https://docs.openstack.org/ironic/latest/admin/drivers.html "
+                "for a list of all Ironic hardware types. "
+                "Currently only the 'ipmi' driver is supported.")),
+        WorkerField("ipmi_username", schema=args.STRING, private=True,
+            description=(
+                "The IPMI username to use for IPMI authentication. Only used "
+                "if the ``baremetal_driver`` is 'ipmi'.")),
+        WorkerField("ipmi_password", schema=args.STRING, private=True, sensitive=True,
+            description=(
+                "The IPMI password to use for IPMI authentication. Only used "
+                "if the ``baremetal_driver`` is 'ipmi'.")),
+    ]
 
     def process(self, hardware: "Hardware") -> "WorkerResult.Base":
         pass

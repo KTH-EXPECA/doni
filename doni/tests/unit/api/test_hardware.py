@@ -9,7 +9,34 @@ import pytest
 from doni.tests.unit import utils
 
 
-def test_get_all_hardware(mocker, user_auth_headers, client: "FlaskClient"):
+def _assert_hardware_json_ok(hw_json, hw):
+    assert hw_json["uuid"] == hw["uuid"]
+    assert hw_json["name"] == hw["name"]
+    assert hw_json["project_id"] == hw["project_id"]
+
+    # Don't return internal IDs
+    assert "id" not in hw_json
+
+    # Return all fields
+    properties = hw_json["properties"]
+    assert properties["private-field"] == hw["properties"]["private-field"]
+    # Ensure sensitive fields masked
+    assert properties["sensitive-field"] == "************"
+    assert properties["private-and-sensitive-field"] == "************"
+
+
+def test_get_all_hardware(mocker, user_auth_headers, client: "FlaskClient",
+                          database: "utils.DBFixtures"):
+    mock_authorize = mocker.patch("doni.api.hardware.authorize")
+    hw = database.add_hardware()
+    res = client.get("/v1/hardware/", headers=user_auth_headers)
+    assert res.status_code == 200
+    assert len(res.json["hardware"]) == 1
+    _assert_hardware_json_ok(res.json["hardware"][0], hw)
+    assert mock_authorize.called_once_with("hardware:get")
+
+
+def test_get_all_hardware_empty(mocker, user_auth_headers, client: "FlaskClient"):
     mock_authorize = mocker.patch("doni.api.hardware.authorize")
     res = client.get("/v1/hardware/", headers=user_auth_headers)
     assert res.status_code == 200
@@ -25,19 +52,12 @@ def test_get_one_hardware(mocker, user_auth_headers, client: "FlaskClient",
     hw = database.add_hardware()
     res = client.get(f"/v1/hardware/{hw['uuid']}/", headers=user_auth_headers)
     assert res.status_code == 200
-    assert res.json["uuid"] == hw["uuid"]
-    assert res.json["name"] == hw["name"]
-    assert res.json["project_id"] == hw["project_id"]
-
-    # Don't return internal IDs
-    assert "id" not in res.json
-
-    # Test nested workers object(s)
+    _assert_hardware_json_ok(res.json, hw)
+     # Test nested workers object(s) -- these are only returned on this endpoint.
     workers = res.json["workers"]
     assert len(workers) == 1
     assert workers[0]["worker_type"] == utils.FAKE_WORKER_TYPE
     assert isinstance(workers[0]["state_details"], dict)
-
     assert mock_authorize.called_once_with("hardware:get")
 
 

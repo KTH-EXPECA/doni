@@ -1,5 +1,7 @@
 import abc
 
+from doni.common import args
+
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from doni.objects.hardware import Hardware
@@ -42,13 +44,69 @@ class BaseWorker(abc.ABC):
 
     Attributes:
         worker_type (str): The name of the worker type.
-        validator_schema (dict): A JSON schema that will be used to validate
-            hardware properties when this worker is enabled for the hardware.
+        fields (list[WorkerField]): A list of fields supported and/or required
+            by the worker.
     """
 
     worker_type = "base"
-    validator_schema = {}
+    fields: "list[WorkerField]" = []
 
     @abc.abstractmethod
     def process(self, hardware: "Hardware") -> "WorkerResult.Base":
         pass
+
+    def json_schema(self):
+        """Get the JSON schema for validating hardware properties for this worker.
+
+        Returns:
+            The JSON schema that validates that all worker fields are present
+                and valid.
+        """
+        return {
+            "type": "object",
+            "properties": {
+                field.name: field.schema or {}
+                for field in self.fields
+            },
+            "required": [field.name for field in self.fields if field.required],
+        }
+
+
+class WorkerField(object):
+    """A Hardware field supported by a worker.
+
+    Each worker defines which fields it uses for its functionality. Worker fields
+    are ultimately stored on the Hardware as properties, but must pass validation
+    at the API layer when fields are being added/updated by the end user.
+
+    Fields persisted in a Hardware's properties that are no longer in use or
+    supported by any worker are hidden from API responses and are not visible
+    except to admins.
+
+    .. note::
+
+       Two workers cannot currently share the same field. If a worker depends
+       on some field managed by another worker, that is technically possible,
+       but such a field should not be declared by the dependant worker.
+
+    Attributes:
+        name (str): The name of the field.
+        schema (dict): A JSON schema to validate the field against. If not
+            defined, the field is assumed to be a string.
+        default (any): The default value for this field, if none is provided.
+        required (bool): Whether the field is required if the worker is in use.
+        private (bool): Whether the field should be hidden (not serialized) when
+            requested by an unauthorized user.
+        sensitive (bool): Whether the field should be masked when serialized.
+        description (str): A user-friendly description of the field's purpose
+            and contents.
+    """
+    def __init__(self, name, schema=None, default=None, required=False,
+                 private=False, sensitive=False, description=None):
+        self.name = name
+        self.schema = schema or args.STRING
+        self.default = default
+        self.required = required
+        self.private = private
+        self.sensitive = sensitive
+        self.description = description
