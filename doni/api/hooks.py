@@ -86,6 +86,8 @@ def route(rule, blueprint: "Blueprint"=None, json_body=None, **options):
                 if json_body:
                     kwargs[json_body] = request.json
                 return function(*args, **kwargs)
+            except exception.Invalid as exc:
+                return make_error_response(str(exc), 400)
             except PolicyNotAuthorized as exc:
                 return make_error_response(str(exc), 403)
             except exception.NotFound as exc:

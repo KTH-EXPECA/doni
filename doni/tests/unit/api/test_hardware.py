@@ -75,7 +75,9 @@ def test_enroll_hardware(mocker, user_auth_headers, client: "FlaskClient"):
         "name": "fake-name",
         "project_id": "fake-project_id",
         "hardware_type": utils.FAKE_HARDWARE_TYPE,
-        "properties": {},
+        "properties": {
+            "default_required_field": "fake-default_required_field",
+        },
     }
     res = client.post(f"/v1/hardware/",
         headers=user_auth_headers,
@@ -83,6 +85,20 @@ def test_enroll_hardware(mocker, user_auth_headers, client: "FlaskClient"):
         data=json.dumps(enroll_payload))
     assert res.status_code == 201
     assert mock_authorize.called_once_with("hardware:create")
+
+
+def test_enroll_hardware_fails_validation(mocker, user_auth_headers, client: "FlaskClient"):
+    enroll_payload = {
+        "name": "fake-name",
+        "project_id": "fake-project_id",
+        "hardware_type": utils.FAKE_HARDWARE_TYPE,
+        "properties": {},
+    }
+    res = client.post(f"/v1/hardware/",
+        headers=user_auth_headers,
+        content_type="application/json",
+        data=json.dumps(enroll_payload))
+    assert res.status_code == 400
 
 
 FAKE_UUID = uuidutils.generate_uuid()

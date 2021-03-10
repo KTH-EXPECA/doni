@@ -1,5 +1,6 @@
 from functools import partial, wraps
 import inspect
+import re
 
 import jsonschema
 from oslo_utils import uuidutils
@@ -90,12 +91,15 @@ def _validate_schema(name, value, schema):
     try:
         jsonschema.validate(value, schema)
     except jsonschema.exceptions.ValidationError as e:
-
         # The error message includes the whole schema which can be very
         # large and unhelpful, so truncate it to be brief and useful
-        error_msg = ' '.join(str(e).split("\n")[:3])[:-1]
-        raise exception.InvalidParameterValue(
-            ('Schema error for %s: %s') % (name, error_msg))
+        details = str(e).split("\n")[:3]
+        error_msg = f"Schema error for {name}: {details[0]}"
+        schema_loc = re.sub("^(.*in schema)", "", details[-1])
+        # SUPER hacky bracket-to-dot-notation thing
+        schema_loc = schema_loc.replace("']", "").replace("['", ".")
+        error_msg += f" (in '{schema_loc[:-1]}')"  # Strip trailing ':'
+        raise exception.InvalidParameterValue(error_msg)
     return value
 
 

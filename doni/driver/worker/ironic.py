@@ -28,4 +28,5 @@ class IronicWorker(BaseWorker):
     ]
 
     def process(self, hardware: "Hardware") -> "WorkerResult.Base":
-        pass
+        # Look up Ironic node by UUID (should match hardware UUID).
+        # If found, we will be doing a patch.

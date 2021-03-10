@@ -39,10 +39,14 @@ def hardware_validator():
     for hwt_name, hwt in enabled_hardware_types.items():
         properties_schema = {
             "type": "object",
-            # Can optionally add some fields that should always just be
-            # allowed on Hardware entities here.
-            "properties": {},
-            "required": [],
+            "properties": {
+                field.name: field.schema
+                for field in hwt.default_fields
+            },
+            "required": [
+                field.name for field in hwt.default_fields
+                if field.required
+            ],
             # Disallow keys that don't match any worker
             "additionalProperties": False,
         }
@@ -65,7 +69,7 @@ def hardware_validator():
             }
         })
 
-    return args.schema({
+    schema = {
         "definitions": {
             "hardware": HARDWARE_SCHEMA
         },
@@ -75,7 +79,10 @@ def hardware_validator():
             # Check schema for hardware types
             {"oneOf": hardware_type_schemas},
         ]
-    })
+    }
+    print(schema)
+
+    return args.schema(schema)
 
 
 def hardware_serializer(with_private_fields=False):
