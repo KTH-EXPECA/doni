@@ -179,3 +179,21 @@ class WorkerTaskAlreadyExists(Conflict):
 class NoFreeWorker(TemporaryFailure):
     _msg_fmt = ('Requested action cannot be performed due to lack of free '
                 'workers.')
+
+
+class KeystoneUnauthorized(DoniException):
+    _msg_fmt = ("Not authorized in Keystone.")
+
+
+class CatalogNotFound(DoniException):
+    _msg_fmt = ("Service type %(service_type)s with endpoint type "
+                "%(endpoint_type)s not found in keystone service catalog.")
+
+
+class ServiceUnavailable(DoniException):
+    _msg_fmt = ("Connection failed")
+
+
+class KeystoneFailure(DoniException):
+    """Unhandled Keystone failure wrapper."""
+    pass

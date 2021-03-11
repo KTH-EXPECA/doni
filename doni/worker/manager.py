@@ -7,6 +7,7 @@ from futurist import rejection
 from futurist import waiters
 from oslo_log import log
 
+from doni.common import context as doni_context
 from doni.common import driver_factory
 from doni.common import exception
 from doni.conf import CONF
@@ -21,6 +22,15 @@ if TYPE_CHECKING:
     from futurist import Future
 
 LOG = log.getLogger(__name__)
+
+LAST_ERROR_DETAIL = "last_error"
+DEFER_COUNT_DETAIL = "defer_count"
+DEFER_REASON_DETAIL = "defer_reason"
+FALLBACK_PAYLOAD_DETAIL = "result"
+ALL_DETAILS = (
+    LAST_ERROR_DETAIL, DEFER_COUNT_DETAIL, DEFER_REASON_DETAIL,
+    FALLBACK_PAYLOAD_DETAIL,
+)
 
 
 class WorkerManager(object):
@@ -55,6 +65,9 @@ class WorkerManager(object):
             LOG.debug(f'Initializing database client for {self.host}')
             self.dbapi = db_api.get_instance()
 
+        if not admin_context:
+            admin_context = doni_context.get_admin_context()
+
         rejection_func = rejection.reject_when_reached(
             CONF.worker.task_pool_size)
         self._executor = futurist.GreenThreadPoolExecutor(
@@ -86,7 +99,7 @@ class WorkerManager(object):
         spacing=CONF.worker.process_pending_task_interval,
         run_immediately=True
     )
-    def process_pending(self, admin_context):
+    def process_pending(self, admin_context: "doni_context.RequestContext"):
         hardware_table = {hw.uuid: hw for hw in Hardware.list(admin_context)}
         pending_tasks = WorkerTask.list_pending(admin_context)
 
@@ -107,7 +120,8 @@ class WorkerManager(object):
 
         for i, batch in enumerate(task_batches):
             done, _ = waiters.wait_for_all([
-                self._spawn_worker(self._process_task, task, hardware_table)
+                self._spawn_worker(
+                    self._process_task, task, hardware_table, admin_context)
                 for task in batch
             ])
             failures = [f.exception() for f in done if f.exception()]
@@ -117,12 +131,12 @@ class WorkerManager(object):
             if failures:
                 LOG.debug(f"failures={failures}")
 
-    def _process_task(self, task: "WorkerTask", hardware_table: "dict[str,Hardware]"):
+    def _process_task(self, task: "WorkerTask", hardware_table: "dict[str,Hardware]",
+                      admin_context: "doni_context.RequestContext"):
         assert task.state == WorkerState.PENDING
-        pending_state_details = task.state_details.copy()
+        state_details = task.state_details.copy()
 
         task.state = WorkerState.IN_PROGRESS
-        task.state_details = {}
         task.save()
 
         try:
@@ -130,27 +144,40 @@ class WorkerManager(object):
             hardware = hardware_table.get(task.hardware_uuid)
             if not hardware:
                 raise exception.HardwareNotFound(hardware=task.hardware_uuid)
-            process_result = worker.process(task)
-        except exception.DoniException as exc:
-            message = str(exc)
+            process_result = worker.process(admin_context, task)
+        except Exception as exc:
+            if isinstance(exc, exception.DoniException):
+                message = str(exc)
+            else:
+                print(exc)
+                LOG.error(f"Unhandled error: {exc}")
+                message = "Unhandled error"
             LOG.error((
                 f"{task.worker_type}: failed to process "
                 f"{task.hardware_uuid}: {message}"))
             task.state = WorkerState.ERROR
-            task.state_details = {"message": str(exc)}
+            state_details[LAST_ERROR_DETAIL] = message
+            task.state_details = state_details
         else:
             if isinstance(process_result, WorkerResult.Defer):
                 task.state = WorkerState.PENDING
                 # Update the deferral count; we may utilize this for back-off
                 # at some point.
-                pending_state_details["defer_count"] = (
-                    pending_state_details.get("defer_count", 0) + 1)
-                task.state_details = pending_state_details
+                state_details[DEFER_COUNT_DETAIL] = (
+                    state_details.get(DEFER_COUNT_DETAIL, 0) + 1)
+                state_details[DEFER_REASON_DETAIL] = process_result.payload
+                task.state_details = state_details
             elif isinstance(process_result, WorkerResult.Success):
                 LOG.info(
                     f"{task.worker_type}: finished processing {task.hardware_uuid}")
                 task.state = WorkerState.STEADY
-                task.state_details = process_result.payload
+                # Clear intermediate state detail information
+                for detail in ALL_DETAILS:
+                    if detail in state_details:
+                        del state_details[detail]
+                if process_result.payload:
+                    state_details.update(process_result.payload)
+                task.state_details = state_details
             else:
                 LOG.warning((
                     f"{task.worker_type}: unexpected return type "
@@ -158,9 +185,12 @@ class WorkerManager(object):
                     "function. Expected 'WorkerResult' type. Result will be "
                     "interpreted as success result."))
                 task.state = WorkerState.STEADY
-                task.state_details = {"result": process_result}
+                if process_result:
+                    state_details[FALLBACK_PAYLOAD_DETAIL] = process_result
+                    task.state_details = state_details
 
         # Commit changes to task
+        print(task)
         task.save()
 
     def _collect_periodic_tasks(self, workers, admin_context):

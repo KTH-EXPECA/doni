@@ -4,6 +4,7 @@ from doni.common import args
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
+    from doni.common.context import RequestContext
     from doni.objects.hardware import Hardware
 
 
@@ -16,7 +17,17 @@ class WorkerState(object):
 
 class WorkerResult:
     class Base(abc.ABC):
-        """Abstract base class for worker result types."""
+        """Abstract base class for worker result types.
+
+        Attributes:
+            payload (dict): Some detailed information about the result. This
+                payload will be saved in the worker "state_details" field.
+        """
+
+        payload: dict = {}
+
+        def __init__(self, payload: dict=None):
+            self.payload = payload
 
     class Defer(Base):
         """Indicates that the worker should defer execution of this task.
@@ -28,15 +39,7 @@ class WorkerResult:
 
     class Success(Base):
         """Indicates that the worker completed successfully.
-
-        Attributes:
-            payload (dict): Some detailed information about the success. This
-                payload will be saved in the worker "state_details" field.
         """
-        payload: dict = {}
-
-        def __init__(self, payload: dict):
-            self.payload = payload
 
 
 class BaseWorker(abc.ABC):
@@ -52,7 +55,7 @@ class BaseWorker(abc.ABC):
     fields: "list[WorkerField]" = []
 
     @abc.abstractmethod
-    def process(self, hardware: "Hardware") -> "WorkerResult.Base":
+    def process(self, context: "RequestContext", hardware: "Hardware") -> "WorkerResult.Base":
         pass
 
     def json_schema(self):
