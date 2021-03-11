@@ -111,6 +111,8 @@ class BaseDriverFactory(object):
     def __init__(self):
         if not self.__class__._extension_manager:
             self.__class__._init_extension_manager()
+            for _, obj in self._extension_manager.items():
+                self.on_load(obj)
 
     def __getitem__(self, name):
         return self._extension_manager[name]
@@ -191,6 +193,10 @@ class BaseDriverFactory(object):
         """Iterator over pairs (name, instance)."""
         return ((ext.name, ext.obj) for ext in self._extension_manager)
 
+    def on_load(self, obj):
+        """Optional callback to invoke on each loaded driver."""
+        pass
+
 
 class HardwareTypeFactory(BaseDriverFactory):
     _entrypoint_name = 'doni.driver.hardware_type'
@@ -202,3 +208,8 @@ class WorkerTypeFactory(BaseDriverFactory):
     _entrypoint_name = 'doni.driver.worker_type'
     _enabled_driver_list_config_option = 'enabled_worker_types'
     _logging_template = "Loaded the following worker types: %s"
+
+    def on_load(self, extension):
+        worker = extension.obj
+        if callable(getattr(worker, "register_opts", None)):
+            worker.register_opts(CONF)

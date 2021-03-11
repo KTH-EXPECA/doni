@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from doni.common.context import RequestContext
     from doni.objects.hardware import Hardware
+    from oslo_config.cfg import Opt
 
 
 class WorkerState(object):
@@ -53,10 +54,18 @@ class BaseWorker(abc.ABC):
 
     worker_type = "base"
     fields: "list[WorkerField]" = []
+    opts: "list[Opt]" = []
+    opt_group: str = ""
 
     @abc.abstractmethod
     def process(self, context: "RequestContext", hardware: "Hardware") -> "WorkerResult.Base":
         pass
+
+    def register_opts(self, conf):
+        conf.register_opts(self.opts)
+
+    def list_opts(self):
+        return self.opts
 
     def json_schema(self):
         """Get the JSON schema for validating hardware properties for this worker.

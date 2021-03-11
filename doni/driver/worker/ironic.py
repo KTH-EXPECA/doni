@@ -82,10 +82,11 @@ class IronicWorker(BaseWorker):
     ]
 
     opts = []
+    opt_group = "ironic"
 
     def register_opts(self, conf):
-        conf.register_opts(self.opts, group="ironic")
-        auth_conf.register_auth_opts(conf, "ironic", service_type="baremetal")
+        conf.register_opts(self.opts, group=self.opt_group)
+        auth_conf.register_auth_opts(conf, self.opt_group, service_type="baremetal")
 
     def list_opts(self):
         return auth_conf.add_auth_opts(self.opts, service_type="baremetal")
