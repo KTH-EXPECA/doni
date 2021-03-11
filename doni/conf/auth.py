@@ -59,7 +59,7 @@ def add_auth_opts(options, service_type=None):
     opts.insert(0, ks_loading.get_auth_common_conf_options()[0])
     # NOTE(dims): There are a lot of auth plugins, we just generate
     # the config options for a few common ones
-    plugins = ['password', 'v2password', 'v3password']
+    plugins = ['v3password']
     for name in plugins:
         plugin = ks_loading.get_plugin_loader(name)
         add_options(opts, ks_loading.get_auth_plugin_conf_options(plugin))

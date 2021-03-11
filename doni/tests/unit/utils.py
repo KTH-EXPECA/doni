@@ -142,3 +142,17 @@ class DBFixtures(object):
                 # Allow tests to destroy hardware
                 pass
         self._hardwares = []
+
+
+class MockResponse:
+    """A simple class for mocking HTTP responses."""
+    def __init__(self, status_code, body=None):
+        self.status_code = status_code
+        self.body = body
+
+    @property
+    def text(self):
+        return str(self.body)
+
+    def json(self):
+        return self.body

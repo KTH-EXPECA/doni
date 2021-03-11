@@ -18,9 +18,18 @@ def admin_context():
     return doni_context.get_admin_context()
 
 
+class ConfigFixture(config_fixture.Config):
+    """Add missing proxy interfaces to config_fixture.Config"""
+    def register_group(self, group):
+        return self.conf.register_group(group)
+
+    def __getitem__(self, item):
+        return self.conf[item]
+
+
 @pytest.fixture
-def config():
-    cfg_fixture = config_fixture.Config(CONF)
+def test_config() -> "ConfigFixture":
+    cfg_fixture = ConfigFixture(CONF)
     cfg_fixture.setUp()
     cfg_fixture.config(use_stderr=False, tempdir=tempfile.tempdir)
     yield cfg_fixture
@@ -28,10 +37,10 @@ def config():
 
 
 @pytest.fixture
-def set_config(config: "config_fixture.Config"):
+def set_config(test_config: "ConfigFixture"):
     def _wrapped(**kwargs):
         """Override values of config options."""
-        return config.config(**kwargs)
+        return test_config.config(**kwargs)
     return _wrapped
 
 
