@@ -1,9 +1,12 @@
+import time
+
 from keystoneauth1 import loading as ks_loading
 from oslo_utils import uuidutils
 import pytest
 from unittest import mock
 
-from doni.driver.worker.ironic import IronicWorker
+from doni.driver.worker.ironic import IronicNodeProvisionStateTimeout, IronicWorker
+from doni.driver.worker.ironic import PROVISION_STATE_TIMEOUT
 from doni.objects.hardware import Hardware
 from doni.tests.unit import utils
 from doni.worker import WorkerResult
@@ -177,3 +180,41 @@ def test_ironic_update_defer_on_maintenance(mock_ironic_request, admin_context: 
     assert isinstance(result, WorkerResult.Defer)
     assert "in maintenance" in result.payload["message"]
     assert mock_ironic_request.call_count == 1
+
+
+def test_ironic_provision_state_timeout(mocker, mock_ironic_request, admin_context: "RequestContext",
+                                        ironic_worker: "IronicWorker", database: "utils.DBFixtures"):
+    """Test that nodes in maintenance mode are not updated."""
+    def _fake_ironic(path, method=None, json=None, **kwargs):
+        if method == "get" and path == f"/nodes/{TEST_HARDWARE_UUID}":
+            return utils.MockResponse(200, {
+                "uuid": TEST_HARDWARE_UUID,
+                "maintenance": False,
+                "provision_state": "available",
+            })
+        elif method == "patch" and path == f"/nodes/{TEST_HARDWARE_UUID}":
+            assert json == [{
+                "op": "replace",
+                "path": "/provision_state",
+                "value": "manageable"
+            }]
+            return utils.MockResponse(200)
+        else:
+            raise NotImplementedError("Unexpected request signature")
+
+    count = time.perf_counter()
+    def _fake_perf_counter():
+        nonlocal count
+        count += 15
+        return count
+
+    mocker.patch("time.perf_counter").side_effect = _fake_perf_counter
+    mocker.patch("time.sleep")
+    mock_ironic_request.side_effect = _fake_ironic
+
+    with pytest.raises(IronicNodeProvisionStateTimeout):
+        ironic_worker.process(admin_context, get_fake_hardware(database))
+    # 1. call to get node
+    # 2. call to update provision state
+    # 3..n calls to poll state until timeout
+    assert mock_ironic_request.call_count == 2 + (PROVISION_STATE_TIMEOUT / 15)
