@@ -156,3 +156,24 @@ def test_ironic_update_node(mocker, mock_ironic_request, admin_context: "Request
     # call 3 = patch the node back to 'available' state
     # call 4 = get the node to see if state changed
     assert mock_ironic_request.call_count == 4
+
+
+def test_ironic_update_defer_on_maintenance(mock_ironic_request, admin_context: "RequestContext",
+                                            ironic_worker: "IronicWorker", database: "utils.DBFixtures"):
+    """Test that nodes in maintenance mode are not updated."""
+    def _fake_ironic(path, method=None, json=None, **kwargs):
+        if method == "get" and path == f"/nodes/{TEST_HARDWARE_UUID}":
+            return utils.MockResponse(200, {
+                "uuid": TEST_HARDWARE_UUID,
+                "maintenance": True,
+            })
+        else:
+            raise NotImplementedError("Unexpected request signature")
+
+    mock_ironic_request.side_effect = _fake_ironic
+
+    result = ironic_worker.process(admin_context, get_fake_hardware(database))
+
+    assert isinstance(result, WorkerResult.Defer)
+    assert "in maintenance" in result.payload["message"]
+    assert mock_ironic_request.call_count == 1

@@ -23,6 +23,7 @@ LOG = log.getLogger(__name__)
 
 IRONIC_API_VERSION = "1"
 IRONIC_API_MICROVERSION = "1.65"
+PROVISION_STATE_TIMEOUT = 60  # Seconds to wait for provision_state changes
 _IRONIC_ADAPTER = None
 
 
@@ -60,6 +61,11 @@ class IronicAPIError(exception.DoniException):
 
 class IronicAPIMalformedResponse(exception.DoniException):
     _msg_fmt = ("Ironic response malformed: %(text)s")
+
+
+class IronicNodeProvisionStateTimeout(exception.DoniException):
+    _msg_fmt = (
+        "Ironic node %(node)s timed out updating its provision state to %(state)s")
 
 
 class IronicWorker(BaseWorker):
@@ -148,12 +154,16 @@ class IronicWorker(BaseWorker):
         return WorkerResult.Success()
 
 
-def _wait_for_provision_state(context, node_uuid, target_state=None):
+def _wait_for_provision_state(context, node_uuid, target_state=None,
+                              timeout=PROVISION_STATE_TIMEOUT):
     _call_ironic(context, f"/nodes/{node_uuid}", method="patch", json=[
         {"op": "replace", "path": "/provision_state", "value": target_state},
     ])
+    start_time = time.perf_counter()
     provision_state = None
     while provision_state != target_state:
+        if (time.perf_counter() - start_time) > timeout:
+            raise IronicNodeProvisionStateTimeout(node=node_uuid, state=target_state)
         time.sleep(15)
         node = _call_ironic(context, f"/nodes/{node_uuid}", method="get")
         provision_state = node["provision_state"]
