@@ -130,15 +130,17 @@ class IronicWorker(BaseWorker):
         if existing["provision_state"] != "manageable":
             _wait_for_provision_state(context, hardware.uuid, target_state="manageable")
 
-        existing_state = {key: existing.get(key) for key in ["driver", "driver_info"]}
-        # Copy unknown keys from existing state to avoid overwriting w/ patch
+        existing_state = {key: existing.get(key) for key in ["driver", "driver_info", "uuid"]}
+        # Copy unknown or empty keys from existing state to avoid overwriting w/ patch
+        # NOTE: this means we cannot null out Ironic properties! But this is
+        # probably the safest thing to do for now.
         desired_state["driver_info"].update({
             key: existing_state["driver_info"][key]
             for key in existing_state["driver_info"].keys()
-            if key not in desired_state["driver_info"]
+            if desired_state["driver_info"].get(key) is None
         })
         patch = jsonpatch.make_patch(existing_state, desired_state)
-        _call_ironic(context, f"/nodes/{hardware.uuid}", method="patch", json=patch)
+        _call_ironic(context, f"/nodes/{hardware.uuid}", method="patch", json=list(patch))
 
         # Put back into available state
         _wait_for_provision_state(context, hardware.uuid, target_state="available")
@@ -147,7 +149,9 @@ class IronicWorker(BaseWorker):
 
 
 def _wait_for_provision_state(context, node_uuid, target_state=None):
-    _call_ironic(context, f"/nodes/{node_uuid}", method="patch", json=[])
+    _call_ironic(context, f"/nodes/{node_uuid}", method="patch", json=[
+        {"op": "replace", "path": "/provision_state", "value": target_state},
+    ])
     provision_state = None
     while provision_state != target_state:
         time.sleep(15)

@@ -93,3 +93,66 @@ def test_ironic_create_node(mock_ironic_request, admin_context: "RequestContext"
     assert isinstance(result, WorkerResult.Success)
     assert result.payload == {"created_at": "fake-created_at"}
     assert mock_ironic_request.call_count == 2
+
+
+def test_ironic_update_node(mocker, mock_ironic_request, admin_context: "RequestContext",
+                            ironic_worker: "IronicWorker", database: "utils.DBFixtures"):
+    """Test that existing nodes are patched from hardware properties."""
+    get_node_count = 0
+    patch_node_count = 0
+    def _fake_ironic(path, method=None, json=None, **kwargs):
+        if method == "get" and path == f"/nodes/{TEST_HARDWARE_UUID}":
+            nonlocal get_node_count
+            get_node_count += 1
+            if get_node_count == 1:
+                provision_state = "manageable"
+            else:
+                provision_state = "available"
+            return utils.MockResponse(200, {
+                "uuid": TEST_HARDWARE_UUID,
+                "name": "ironic-name",
+                "maintenance": False,
+                "provision_state": provision_state,
+                "driver": "fake-driver",
+                "driver_info": {
+                    # Ironic-provided value should be replaced
+                    "ipmi_address": "ironic-ipmi_address",
+                    "ipmi_username": "fake-ipmi_username",
+                    "ipmi_password": "fake-ipmi_password",
+                    "ipmi_terminal_port": 30000,
+                },
+            })
+        elif method == "patch" and path == f"/nodes/{TEST_HARDWARE_UUID}":
+            nonlocal patch_node_count
+            patch_node_count += 1
+            if patch_node_count == 1:
+                # Validate patch for node properties
+                assert json == [{
+                    "op": "replace",
+                    "path": "/driver_info/ipmi_address",
+                    "value": "fake-management_address"
+                }]
+            else:
+                # Validate patch for setting node to available
+                assert json == [{
+                    "op": "replace",
+                    "path": "/provision_state",
+                    "value": "available"
+                }]
+            return utils.MockResponse(200)
+        else:
+            raise NotImplementedError("Unexpected request signature")
+
+    # 'sleep' is used to wait for provision state changes
+    mocker.patch("time.sleep")
+    mock_ironic_request.side_effect = _fake_ironic
+
+    result = ironic_worker.process(admin_context, get_fake_hardware(database))
+
+    assert isinstance(result, WorkerResult.Success)
+    assert result.payload is None
+    # call 1 = get the node
+    # call 2 = patch the node's properties
+    # call 3 = patch the node back to 'available' state
+    # call 4 = get the node to see if state changed
+    assert mock_ironic_request.call_count == 4
