@@ -86,8 +86,7 @@ def test_ironic_create_node(mock_ironic_request, admin_context: "RequestContext"
                 "ipmi_terminal_port": None,
             }
             return utils.MockResponse(201, {"created_at": "fake-created_at"})
-        else:
-            raise NotImplementedError("Unexpected request signature")
+        raise NotImplementedError("Unexpected request signature")
 
     mock_ironic_request.side_effect = _fake_ironic
 
@@ -143,8 +142,7 @@ def test_ironic_update_node(mocker, mock_ironic_request, admin_context: "Request
                     "value": "available"
                 }]
             return utils.MockResponse(200)
-        else:
-            raise NotImplementedError("Unexpected request signature")
+        raise NotImplementedError("Unexpected request signature")
 
     # 'sleep' is used to wait for provision state changes
     mocker.patch("time.sleep")
@@ -170,8 +168,7 @@ def test_ironic_update_defer_on_maintenance(mock_ironic_request, admin_context: 
                 "uuid": TEST_HARDWARE_UUID,
                 "maintenance": True,
             })
-        else:
-            raise NotImplementedError("Unexpected request signature")
+        raise NotImplementedError("Unexpected request signature")
 
     mock_ironic_request.side_effect = _fake_ironic
 
@@ -199,8 +196,7 @@ def test_ironic_provision_state_timeout(mocker, mock_ironic_request, admin_conte
                 "value": "manageable"
             }]
             return utils.MockResponse(200)
-        else:
-            raise NotImplementedError("Unexpected request signature")
+        raise NotImplementedError("Unexpected request signature")
 
     count = time.perf_counter()
     def _fake_perf_counter():
@@ -218,3 +214,20 @@ def test_ironic_provision_state_timeout(mocker, mock_ironic_request, admin_conte
     # 2. call to update provision state
     # 3..n calls to poll state until timeout
     assert mock_ironic_request.call_count == 2 + (PROVISION_STATE_TIMEOUT / 15)
+
+
+def test_ironic_update_defer_on_maintenance(mock_ironic_request, admin_context: "RequestContext",
+                                            ironic_worker: "IronicWorker", database: "utils.DBFixtures"):
+    """Test that nodes in maintenance mode are not updated."""
+    def _fake_ironic(path, method=None, json=None, **kwargs):
+        if method == "get" and path == f"/nodes/{TEST_HARDWARE_UUID}":
+            return utils.MockResponse(409)
+        raise NotImplementedError("Unexpected request signature")
+
+    mock_ironic_request.side_effect = _fake_ironic
+
+    result = ironic_worker.process(admin_context, get_fake_hardware(database))
+
+    assert isinstance(result, WorkerResult.Defer)
+    assert "is locked" in result.payload["message"]
+    assert mock_ironic_request.call_count == 1
