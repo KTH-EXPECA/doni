@@ -53,11 +53,12 @@ def ironic_worker(test_config):
     return worker
 
 
-@pytest.fixture
-def mock_ironic_request(mocker):
+def get_fake_ironic(mocker, request_fn):
     mock_adapter = mock.MagicMock()
-    mocker.patch("doni.driver.worker.ironic.keystone.get_adapter").return_value = mock_adapter
-    return mock_adapter.request
+    mock_request = mock_adapter.request
+    mock_request.side_effect = request_fn
+    mocker.patch("doni.driver.worker.ironic._get_ironic_adapter").return_value = mock_adapter
+    return mock_request
 
 
 def get_fake_hardware(database: "utils.DBFixtures"):
@@ -70,10 +71,10 @@ def get_fake_hardware(database: "utils.DBFixtures"):
     return Hardware(**db_hw)
 
 
-def test_ironic_create_node(mock_ironic_request, admin_context: "RequestContext",
+def test_ironic_create_node(mocker, admin_context: "RequestContext",
                             ironic_worker: "IronicWorker", database: "utils.DBFixtures"):
     """Test that new nodes are created if not already existing."""
-    def _fake_ironic(path, method=None, json=None, **kwargs):
+    def _fake_ironic_for_create(path, method=None, json=None, **kwargs):
         if method == "get" and path == f"/nodes/{TEST_HARDWARE_UUID}":
             return utils.MockResponse(404)
         elif method == "post" and path == f"/nodes":
@@ -88,21 +89,21 @@ def test_ironic_create_node(mock_ironic_request, admin_context: "RequestContext"
             return utils.MockResponse(201, {"created_at": "fake-created_at"})
         raise NotImplementedError("Unexpected request signature")
 
-    mock_ironic_request.side_effect = _fake_ironic
+    fake_ironic = get_fake_ironic(mocker, _fake_ironic_for_create)
 
     result = ironic_worker.process(admin_context, get_fake_hardware(database))
 
     assert isinstance(result, WorkerResult.Success)
     assert result.payload == {"created_at": "fake-created_at"}
-    assert mock_ironic_request.call_count == 2
+    assert fake_ironic.call_count == 2
 
 
-def test_ironic_update_node(mocker, mock_ironic_request, admin_context: "RequestContext",
+def test_ironic_update_node(mocker, admin_context: "RequestContext",
                             ironic_worker: "IronicWorker", database: "utils.DBFixtures"):
     """Test that existing nodes are patched from hardware properties."""
     get_node_count = 0
     patch_node_count = 0
-    def _fake_ironic(path, method=None, json=None, **kwargs):
+    def _fake_ironic_for_update(path, method=None, json=None, **kwargs):
         if method == "get" and path == f"/nodes/{TEST_HARDWARE_UUID}":
             nonlocal get_node_count
             get_node_count += 1
@@ -146,7 +147,7 @@ def test_ironic_update_node(mocker, mock_ironic_request, admin_context: "Request
 
     # 'sleep' is used to wait for provision state changes
     mocker.patch("time.sleep")
-    mock_ironic_request.side_effect = _fake_ironic
+    fake_ironic = get_fake_ironic(mocker, _fake_ironic_for_update)
 
     result = ironic_worker.process(admin_context, get_fake_hardware(database))
 
@@ -156,13 +157,13 @@ def test_ironic_update_node(mocker, mock_ironic_request, admin_context: "Request
     # call 2 = patch the node's properties
     # call 3 = patch the node back to 'available' state
     # call 4 = get the node to see if state changed
-    assert mock_ironic_request.call_count == 4
+    assert fake_ironic.call_count == 4
 
 
-def test_ironic_update_defer_on_maintenance(mock_ironic_request, admin_context: "RequestContext",
+def test_ironic_update_defer_on_maintenance(mocker, admin_context: "RequestContext",
                                             ironic_worker: "IronicWorker", database: "utils.DBFixtures"):
     """Test that nodes in maintenance mode are not updated."""
-    def _fake_ironic(path, method=None, json=None, **kwargs):
+    def _fake_ironic_for_maintenance(path, method=None, json=None, **kwargs):
         if method == "get" and path == f"/nodes/{TEST_HARDWARE_UUID}":
             return utils.MockResponse(200, {
                 "uuid": TEST_HARDWARE_UUID,
@@ -170,19 +171,19 @@ def test_ironic_update_defer_on_maintenance(mock_ironic_request, admin_context: 
             })
         raise NotImplementedError("Unexpected request signature")
 
-    mock_ironic_request.side_effect = _fake_ironic
+    fake_ironic = get_fake_ironic(mocker, _fake_ironic_for_maintenance)
 
     result = ironic_worker.process(admin_context, get_fake_hardware(database))
 
     assert isinstance(result, WorkerResult.Defer)
     assert "in maintenance" in result.payload["message"]
-    assert mock_ironic_request.call_count == 1
+    assert fake_ironic.call_count == 1
 
 
-def test_ironic_provision_state_timeout(mocker, mock_ironic_request, admin_context: "RequestContext",
+def test_ironic_provision_state_timeout(mocker, admin_context: "RequestContext",
                                         ironic_worker: "IronicWorker", database: "utils.DBFixtures"):
     """Test that nodes in maintenance mode are not updated."""
-    def _fake_ironic(path, method=None, json=None, **kwargs):
+    def _fake_ironic_for_timeout(path, method=None, json=None, **kwargs):
         if method == "get" and path == f"/nodes/{TEST_HARDWARE_UUID}":
             return utils.MockResponse(200, {
                 "uuid": TEST_HARDWARE_UUID,
@@ -206,28 +207,29 @@ def test_ironic_provision_state_timeout(mocker, mock_ironic_request, admin_conte
 
     mocker.patch("time.perf_counter").side_effect = _fake_perf_counter
     mocker.patch("time.sleep")
-    mock_ironic_request.side_effect = _fake_ironic
+
+    fake_ironic = get_fake_ironic(mocker, _fake_ironic_for_timeout)
 
     with pytest.raises(IronicNodeProvisionStateTimeout):
         ironic_worker.process(admin_context, get_fake_hardware(database))
     # 1. call to get node
     # 2. call to update provision state
     # 3..n calls to poll state until timeout
-    assert mock_ironic_request.call_count == 2 + (PROVISION_STATE_TIMEOUT / 15)
+    assert fake_ironic.call_count == 2 + (PROVISION_STATE_TIMEOUT / 15)
 
 
-def test_ironic_update_defer_on_maintenance(mock_ironic_request, admin_context: "RequestContext",
-                                            ironic_worker: "IronicWorker", database: "utils.DBFixtures"):
-    """Test that nodes in maintenance mode are not updated."""
-    def _fake_ironic(path, method=None, json=None, **kwargs):
+def test_ironic_update_defer_on_locked(mocker, admin_context: "RequestContext",
+                                       ironic_worker: "IronicWorker", database: "utils.DBFixtures"):
+    """Test that nodes in locked state are deferred."""
+    def _fake_ironic_for_locked(path, method=None, json=None, **kwargs):
         if method == "get" and path == f"/nodes/{TEST_HARDWARE_UUID}":
             return utils.MockResponse(409)
         raise NotImplementedError("Unexpected request signature")
 
-    mock_ironic_request.side_effect = _fake_ironic
+    fake_ironic = get_fake_ironic(mocker, _fake_ironic_for_locked)
 
     result = ironic_worker.process(admin_context, get_fake_hardware(database))
 
     assert isinstance(result, WorkerResult.Defer)
     assert "is locked" in result.payload["message"]
-    assert mock_ironic_request.call_count == 1
+    assert fake_ironic.call_count == 1

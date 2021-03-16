@@ -189,8 +189,6 @@ class WorkerManager(object):
                     state_details[FALLBACK_PAYLOAD_DETAIL] = process_result
                     task.state_details = state_details
 
-        # Commit changes to task
-        print(task)
         task.save()
 
     def _collect_periodic_tasks(self, workers, admin_context):

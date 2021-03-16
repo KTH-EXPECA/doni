@@ -80,3 +80,9 @@ max-line-length = 80
 select = ["C","E","F","W","B","B950"]
 # Ignore E501 for B950 compat
 extend-ignore = ["E203", "E501", "W503"]
+
+[tool.pytest.ini_options]
+log_cli = true
+log_cli_level = "INFO"
+log_cli_format = "%(asctime)s [%(levelname)8s] %(message)s (%(filename)s:%(lineno)s)"
+log_cli_date_format = "%Y-%m-%d %H:%M:%S"

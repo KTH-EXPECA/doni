@@ -80,7 +80,6 @@ def hardware_validator():
             {"oneOf": hardware_type_schemas},
         ]
     }
-    print(schema)
 
     return args.schema(schema)
 

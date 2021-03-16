@@ -152,7 +152,7 @@ class MockResponse:
 
     @property
     def text(self):
-        return str(self.body)
+        return str(self.body) if self.body is not None else ""
 
     def json(self):
         return self.body
