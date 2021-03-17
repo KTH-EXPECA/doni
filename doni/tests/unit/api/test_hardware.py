@@ -33,7 +33,7 @@ def test_get_all_hardware(mocker, user_auth_headers, client: "FlaskClient",
     assert res.status_code == 200
     assert len(res.json["hardware"]) == 1
     _assert_hardware_json_ok(res.json["hardware"][0], hw)
-    assert mock_authorize.called_once_with("hardware:get")
+    mock_authorize.assert_called_once_with("hardware:get")
 
 
 def test_get_all_hardware_empty(mocker, user_auth_headers, client: "FlaskClient"):
@@ -43,7 +43,7 @@ def test_get_all_hardware_empty(mocker, user_auth_headers, client: "FlaskClient"
     assert res.json == {
         "hardware": [],
     }
-    assert mock_authorize.called_once_with("hardware:get")
+    mock_authorize.assert_called_once_with("hardware:get")
 
 
 def test_get_one_hardware(mocker, user_auth_headers, client: "FlaskClient",
@@ -58,7 +58,7 @@ def test_get_one_hardware(mocker, user_auth_headers, client: "FlaskClient",
     assert len(workers) == 1
     assert workers[0]["worker_type"] == utils.FAKE_WORKER_TYPE
     assert isinstance(workers[0]["state_details"], dict)
-    assert mock_authorize.called_once_with("hardware:get")
+    mock_authorize.assert_called_once_with("hardware:get")
 
 
 def test_missing_hardware(mocker, user_auth_headers, client: "FlaskClient"):
@@ -84,7 +84,7 @@ def test_enroll_hardware(mocker, user_auth_headers, client: "FlaskClient"):
         content_type="application/json",
         data=json.dumps(enroll_payload))
     assert res.status_code == 201
-    assert mock_authorize.called_once_with("hardware:create")
+    mock_authorize.assert_called_once_with("hardware:create")
 
 
 def test_enroll_hardware_fails_validation(mocker, user_auth_headers, client: "FlaskClient"):
@@ -132,6 +132,6 @@ def test_update_hardware(mocker, user_auth_headers, client: "FlaskClient",
         content_type="application/json",
         data=json.dumps(patch))
     assert res.status_code == 200
-    assert mock_authorize.called_once_with("hardware:update")
+    mock_authorize.assert_called_once_with("hardware:update")
     assert res.json["uuid"] == FAKE_UUID
     assert res.json["name"] == "new-fake-name"
