@@ -13,7 +13,7 @@ name = "doni"
 version = "0.0.1"
 
 [tool.poetry.dependencies]
-python = "^3.8"
+python = "^3.6"
 Flask = "^1.1.2"
 gunicorn = "^20.0.4"
 "oslo.config" = "^8.4.0"
