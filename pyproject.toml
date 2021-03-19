@@ -11,9 +11,8 @@ authors = [
 description = "Chameleon hardware registration and enrollment service"
 name = "doni"
 version = "0.0.1"
-
-[tool.poetry]
-include = ["etc/ironic/**/*"]
+include = ["etc/doni"]
+exclude = ["doni/tests"]
 
 # All dependencies should be at minimum the value of the upper constraint
 # for the targeted OpenStack release. These values are for the Train cycle:
