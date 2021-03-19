@@ -800,6 +800,17 @@ psutil = ">=3.2.2"
 six = ">=1.10.0"
 
 [[package]]
+name = "oslo.rootwrap"
+version = "5.17.1"
+description = "Oslo Rootwrap"
+category = "main"
+optional = false
+python-versions = "*"
+
+[package.dependencies]
+six = ">=1.10.0"
+
+[[package]]
 name = "oslo.serialization"
 version = "4.1.0"
 description = "Oslo Serialization library"
@@ -1533,7 +1544,7 @@ testing = ["pytest (>=4.6)", "pytest-checkdocs (>=1.2.3)", "pytest-flake8", "pyt
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.6"
-content-hash = "15c26fed83c7084f8040cb3204f1eaa7e112d80b40bb0cda61a593be69b5eb7d"
+content-hash = "5c70277c68e5ddf4632f1802d6dac094d0c82c5cae380707f4aa75cf2f078b3b"
 
 [metadata.files]
 alembic = [
@@ -1889,6 +1900,10 @@ os-service-types = [
 "oslo.reports" = [
     {file = "oslo.reports-1.31.1-py2.py3-none-any.whl", hash = "sha256:0baffe93869ac7d3a5ff2a660a69e015ee503516279b797541d465c1811a7f59"},
     {file = "oslo.reports-1.31.1.tar.gz", hash = "sha256:84a0aae40db96815432a9c3bd42f3fcca122b04f7fcafcd445f21f878c51ede0"},
+]
+"oslo.rootwrap" = [
+    {file = "oslo.rootwrap-5.17.1-py2.py3-none-any.whl", hash = "sha256:bbceb1ff4c57a44718f8e39ef4a7db00eef87c5a2029aaf8dd87fcd9a37c88f4"},
+    {file = "oslo.rootwrap-5.17.1.tar.gz", hash = "sha256:717bea1bdde9d6f09dafdfb13545b708fdc97091690a0568cf4b36652c05c8e4"},
 ]
 "oslo.serialization" = [
     {file = "oslo.serialization-4.1.0-py3-none-any.whl", hash = "sha256:a0acf0ff7ca88b3ee6514713571f614b5c20870005ed0eb90408fa7f9f3edb60"},
