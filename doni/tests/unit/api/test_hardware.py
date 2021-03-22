@@ -6,7 +6,30 @@ from oslo_policy.policy import PolicyNotAuthorized
 from oslo_utils import uuidutils
 import pytest
 
+from doni.common.context import RequestContext
+from doni.objects.hardware import Hardware
 from doni.tests.unit import utils
+
+
+class AnyContext(RequestContext):
+    """Check that an argument was a request context.
+    """
+    def __eq__(self, other):
+        return True
+
+
+class HardwareMatching(Hardware):
+    """Check that an argument is a Hardware object w/ some exact field values.
+    """
+    def __init__(self, **kwargs):
+        self.fields = kwargs.copy()
+        super().__init__(**kwargs)
+
+    def __eq__(self, other):
+        return all(
+            getattr(self, k, None) == getattr(other, k, None)
+            for k in self.fields.keys()
+        )
 
 
 def _assert_hardware_json_ok(hw_json, hw):
@@ -21,7 +44,7 @@ def _assert_hardware_json_ok(hw_json, hw):
     properties = hw_json["properties"]
     assert properties["private-field"] == hw["properties"]["private-field"]
     # Ensure sensitive fields masked
-    assert properties["sensitive-field"] == "************"
+    assert properties["public-and-sensitive-field"] == "************"
     assert properties["private-and-sensitive-field"] == "************"
 
 
@@ -33,7 +56,7 @@ def test_get_all_hardware(mocker, user_auth_headers, client: "FlaskClient",
     assert res.status_code == 200
     assert len(res.json["hardware"]) == 1
     _assert_hardware_json_ok(res.json["hardware"][0], hw)
-    mock_authorize.assert_called_once_with("hardware:get")
+    mock_authorize.assert_called_once_with("hardware:get", AnyContext())
 
 
 def test_get_all_hardware_empty(mocker, user_auth_headers, client: "FlaskClient"):
@@ -43,7 +66,7 @@ def test_get_all_hardware_empty(mocker, user_auth_headers, client: "FlaskClient"
     assert res.json == {
         "hardware": [],
     }
-    mock_authorize.assert_called_once_with("hardware:get")
+    mock_authorize.assert_called_once_with("hardware:get", AnyContext())
 
 
 def test_get_one_hardware(mocker, user_auth_headers, client: "FlaskClient",
@@ -58,7 +81,8 @@ def test_get_one_hardware(mocker, user_auth_headers, client: "FlaskClient",
     assert len(workers) == 1
     assert workers[0]["worker_type"] == utils.FAKE_WORKER_TYPE
     assert isinstance(workers[0]["state_details"], dict)
-    mock_authorize.assert_called_once_with("hardware:get")
+    mock_authorize.assert_called_once_with("hardware:get",
+        AnyContext(), HardwareMatching(uuid=hw["uuid"]))
 
 
 def test_missing_hardware(mocker, user_auth_headers, client: "FlaskClient"):
@@ -84,7 +108,8 @@ def test_enroll_hardware(mocker, user_auth_headers, client: "FlaskClient"):
         content_type="application/json",
         data=json.dumps(enroll_payload))
     assert res.status_code == 201
-    mock_authorize.assert_called_once_with("hardware:create")
+    mock_authorize.assert_called_once_with("hardware:create", AnyContext(),
+        HardwareMatching(project_id="fake-project_id"))
 
 
 def test_enroll_hardware_fails_validation(mocker, user_auth_headers, client: "FlaskClient"):
@@ -132,6 +157,7 @@ def test_update_hardware(mocker, user_auth_headers, client: "FlaskClient",
         content_type="application/json",
         data=json.dumps(patch))
     assert res.status_code == 200
-    mock_authorize.assert_called_once_with("hardware:update")
+    mock_authorize.assert_called_once_with(
+        "hardware:update", AnyContext(), HardwareMatching(uuid=FAKE_UUID))
     assert res.json["uuid"] == FAKE_UUID
     assert res.json["name"] == "new-fake-name"
