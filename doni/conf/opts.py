@@ -5,6 +5,7 @@ import doni.conf
 _opts = [
     (conf.GROUP, conf.opts) for conf in [
         doni.conf.default,
+        doni.conf.api,
         doni.conf.worker,
     ]
 ]

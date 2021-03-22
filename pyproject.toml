@@ -13,7 +13,6 @@ exclude = ["doni/tests"]
 # Kolla containers currently use 3.6, this can eventually be updated to 3.8
 python = "^3.6"
 Flask = "^1.1.1"
-gunicorn = "^20.0.0"
 "oslo.config" = "^6.11.3"
 "oslo.db" = "^5.0.2"
 stevedore = "^1.31.0"
@@ -44,6 +43,7 @@ isort = "^5.8.0"
 pydocstyle = "^6.0.0"
 
 [tool.poetry.scripts]
+doni-api = "doni.cmd.api:main"
 doni-dbsync = "doni.cmd.dbsync:main"
 doni-rootwrap = "oslo_rootwrap.cmd:main"
 

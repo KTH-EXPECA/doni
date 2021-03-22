@@ -33,10 +33,9 @@ ADD pyproject.toml .
 RUN poetry add \
   .wheels/*
 
-RUN poetry install --no-dev
-
-ADD docker/start_server.sh .
 ADD doni ./doni
 
+RUN poetry install --no-dev
+
 EXPOSE 8001
-CMD [ "./start_server.sh" ]
+CMD [ "doni-api" ]
