@@ -11,6 +11,7 @@ from keystonemiddleware.auth_token._request import _AuthTokenRequest
 from oslo_log import log
 from oslo_policy.policy import PolicyNotAuthorized
 from webob import exc as webob_exc
+from werkzeug import exceptions as werkzeug_exc
 
 if TYPE_CHECKING:
     from flask import Blueprint
@@ -119,6 +120,9 @@ def route(rule, blueprint: "Blueprint" = None, json_body=None, **options):
                 return make_error_response(str(exc), 403)
             except exception.NotFound as exc:
                 return make_error_response(str(exc), 404)
+            except werkzeug_exc.HTTPException as exc:
+                # Let Flask handle these with default behavior
+                raise
             except Exception as exc:
                 # FIXME: why won't this log for tests and we have to print()?
                 import traceback
