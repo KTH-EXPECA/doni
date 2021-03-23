@@ -47,6 +47,7 @@ pydocstyle = "^6.0.0"
 doni-api = "doni.cmd.api:main"
 doni-dbsync = "doni.cmd.dbsync:main"
 doni-rootwrap = "oslo_rootwrap.cmd:main"
+doni-worker = "doni.cmd.worker:main"
 
 [tool.poetry.plugins."doni.database.migration_backend"]
 sqlalchemy = "doni.db.migration"
