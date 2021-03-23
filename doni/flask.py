@@ -50,8 +50,8 @@ def create_app(test_config=None):
     # app.before_request(req_logging.log_request_info)
     # app.before_request(json_body.json_body_before_request)
     middlewares = [
-        hooks.AuthTokenFlaskMiddleware(),
         hooks.ContextMiddleware(),
+        hooks.AuthTokenFlaskMiddleware(),
     ]
     deque(
         app.before_request(m.before_request)
