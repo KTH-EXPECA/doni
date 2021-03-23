@@ -122,9 +122,8 @@ def route(rule, blueprint: "Blueprint" = None, json_body=None, **options):
             except Exception as exc:
                 # FIXME: why won't this log for tests and we have to print()?
                 import traceback
-
                 traceback.print_exc()
-                LOG.error(f"Unhandled error on {rule}: {exc}")
+                LOG.exception(f"Unhandled error on {rule}: {exc}")
                 return make_error_response("An unknown error occurred.", 500)
 
         return blueprint.route(rule, **options)(inner_check_args)

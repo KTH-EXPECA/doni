@@ -174,6 +174,7 @@ def get_one(hardware_uuid=None):
 @args.validate(hardware_params=hardware_validator())
 def create(hardware_params=None):
     ctx = request.context
+    assert hardware_params is not None
 
     hardware = Hardware(ctx, **hardware_params)
     authorize("hardware:create", ctx, hardware)
@@ -187,6 +188,7 @@ def create(hardware_params=None):
 @args.validate(hardware_uuid=args.uuid, patch=args.schema(args.PATCH))
 def update(hardware_uuid=None, patch=None):
     ctx = request.context
+    assert patch is not None
 
     hardware = Hardware.get_by_uuid(ctx, hardware_uuid)
     authorize("hardware:update", ctx, hardware)
