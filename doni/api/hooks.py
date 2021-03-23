@@ -10,6 +10,7 @@ from keystonemiddleware.auth_token import AuthProtocol
 from keystonemiddleware.auth_token._request import _AuthTokenRequest
 from oslo_log import log
 from oslo_policy.policy import PolicyNotAuthorized
+from webob import exc as ksm_exc
 
 if TYPE_CHECKING:
     from flask import Blueprint
@@ -34,11 +35,13 @@ class AuthTokenFlaskMiddleware(object):
                 "oslo_config_config": CONF,
             },
         )
+        self.public_paths = [
+            "/",
+            "/v1/hardware/export/"
+        ]
 
     def before_request(self):
-        # skip on public routes
-        # TODO this is ugly.
-        if request.path == "/v1/hardware/export/":
+        if request.path in self.public_paths:
             return
 
         # When the middleware is invoked, it should mutate request.environ
@@ -52,9 +55,14 @@ class AuthTokenFlaskMiddleware(object):
             # properly interpret it as headers to be set in this form.
             headers=dict(request.headers),
         )
-        res = self.keystonemiddleware.process_request(auth_token_request)
-        if res:
-            return res
+        try:
+            res = self.keystonemiddleware.process_request(auth_token_request)
+            if res:
+                return res
+        except ksm_exc.HTTPError as exc:
+            return make_error_response(
+                "The request you have made requires authentication",
+                exc.status_code)
 
 
 class ContextMiddleware(object):
