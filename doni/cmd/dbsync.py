@@ -60,7 +60,6 @@ class DBCommand(object):
         migration.create_schema()
 
     def online_data_migrations(self):
-        self._check_versions()
         self._run_online_data_migrations(max_count=CONF.command.max_count,
                                          options=CONF.command.options)
 
