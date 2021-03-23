@@ -32,23 +32,6 @@ def create_app(test_config=None):
     except OSError:
         pass
 
-    # Register Error Handler Function for Keystone Errors.
-    # NOTE(morgan): Flask passes errors to an error handling function. All of
-    # keystone's api errors are explicitly registered in
-    # keystone.exception.KEYSTONE_API_EXCEPTIONS and those are in turn
-    # registered here to ensure a proper error is bubbled up to the end user
-    # instead of a 500 error.
-    # for exc in exception.KEYSTONE_API_EXCEPTIONS:
-    #     app.register_error_handler(exc, _handle_keystone_exception)
-
-    # Register extra (python) exceptions with the proper exception handler,
-    # specifically TypeError. It will render as a 400 error, but presented in
-    # a "web-ified" manner
-    # app.register_error_handler(TypeError, _handle_unknown_keystone_exception)
-
-    # Add core before request functions
-    # app.before_request(req_logging.log_request_info)
-    # app.before_request(json_body.json_body_before_request)
     middlewares = [
         hooks.ContextMiddleware(),
         hooks.AuthTokenFlaskMiddleware(),
