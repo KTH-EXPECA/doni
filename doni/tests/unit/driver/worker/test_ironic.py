@@ -199,7 +199,7 @@ def test_ironic_provision_state_timeout(mocker, admin_context: "RequestContext",
             return utils.MockResponse(200)
         raise NotImplementedError("Unexpected request signature")
 
-    count = time.perf_counter()
+    count = int(time.perf_counter())
     def _fake_perf_counter():
         nonlocal count
         count += 15
