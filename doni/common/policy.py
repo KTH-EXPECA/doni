@@ -1,10 +1,10 @@
+import itertools
 import sys
 
 from oslo_config import cfg
 from oslo_policy import policy
 
 from doni import PROJECT_NAME
-from doni.common import policies
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
@@ -14,12 +14,70 @@ if TYPE_CHECKING:
 CONF = cfg.CONF
 _ENFORCER = None
 
+SYSTEM_ADMIN = 'role:admin'
+SYSTEM_ADMIN_OR_PROJECT_MEMBER = 'role:admin or project_id:%(project_id)s'
+HARDWARE = "hardware:%s"
+
+hardware_rules = [
+    policy.DocumentedRuleDefault(
+        name=HARDWARE % "get",
+        check_str=SYSTEM_ADMIN_OR_PROJECT_MEMBER,
+        description="Get hardware details",
+        operations=[
+            {
+                "path": "/v1/hardware/{hardware_uuid}",
+                "method": "GET"
+            }
+        ]
+    ),
+    policy.DocumentedRuleDefault(
+        name=HARDWARE % "create",
+        check_str=SYSTEM_ADMIN,
+        description="Enroll a hardware",
+        operations=[
+            {
+                "path": "/v1/hardware",
+                "method": "POST"
+            }
+        ]
+    ),
+    policy.DocumentedRuleDefault(
+        name=HARDWARE % "update",
+        check_str=SYSTEM_ADMIN_OR_PROJECT_MEMBER,
+        description="Update a hardware",
+        operations=[
+            {
+                "path": "/v1/hardware/{hardware_uuid}",
+                "method": "PATCH"
+            }
+        ]
+    ),
+    policy.DocumentedRuleDefault(
+        name=HARDWARE % "delete",
+        check_str=SYSTEM_ADMIN_OR_PROJECT_MEMBER,
+        description="Delete a hardware",
+        operations=[
+            {
+                "path": "/v1/hardware/{hardware_uuid}",
+                "method": "DELETE"
+            }
+        ]
+    )
+]
+
+
+def list_rules():
+    return itertools.chain(
+        hardware_rules,
+    )
+
+
 def get_enforcer():
     CONF([], project=PROJECT_NAME)
     global _ENFORCER
     if not _ENFORCER:
         _ENFORCER = policy.Enforcer(CONF)
-        _ENFORCER.register_defaults(policies.list_rules())
+        _ENFORCER.register_defaults(list_rules())
     return _ENFORCER
 
 
