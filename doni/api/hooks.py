@@ -70,7 +70,17 @@ class ContextMiddleware(object):
         request.context = doni_context.RequestContext.from_environ(request.environ)
 
     def after_request(self, res):
-        res.headers["OpenStack-Request-Id"] = request.context.request_id
+        context = getattr(request, "context", None)
+
+        if context:
+            request_id = request.context.request_id
+        else:
+            # If a prior middleware short-circuited before this middleware, context
+            # is not set. This can happen e.g. on unauthenticated requests.
+            # Just generate a new request ID in this case.
+            request_id = doni_context.generate_request_id()
+
+        res.headers["OpenStack-Request-Id"] = request_id
         return res
 
 

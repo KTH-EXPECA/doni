@@ -21,3 +21,7 @@ def get_admin_context():
                              is_admin=True,
                              overwrite=False)
     return context
+
+
+def generate_request_id():
+    return context.generate_request_id()

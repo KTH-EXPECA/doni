@@ -33,8 +33,10 @@ def create_app(test_config=None):
         pass
 
     middlewares = [
-        hooks.ContextMiddleware(),
+        # AuthToken must come before context, because the Context middleware
+        # depends on information set in the request environment by AuthToken.
         hooks.AuthTokenFlaskMiddleware(),
+        hooks.ContextMiddleware(),
     ]
     deque(
         app.before_request(m.before_request)
