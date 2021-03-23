@@ -1,13 +1,13 @@
 from oslo_policy import policy
 
-from doni.common.policies import base
+from doni.common import policies
 
 HARDWARE = "hardware:%s"
 
 rules = [
     policy.DocumentedRuleDefault(
         name=HARDWARE % "get",
-        check_str=base.RULE_ADMIN_OR_OWNER,
+        check_str=policies.SYSTEM_ADMIN_OR_PROJECT_MEMBER,
         description="Get hardware details",
         operations=[
             {
@@ -18,7 +18,7 @@ rules = [
     ),
     policy.DocumentedRuleDefault(
         name=HARDWARE % "create",
-        check_str=base.ROLE_ADMIN,
+        check_str=policies.SYSTEM_ADMIN,
         description="Enroll a hardware",
         operations=[
             {
@@ -29,7 +29,7 @@ rules = [
     ),
     policy.DocumentedRuleDefault(
         name=HARDWARE % "update",
-        check_str=base.RULE_ADMIN_OR_OWNER,
+        check_str=policies.SYSTEM_ADMIN_OR_PROJECT_MEMBER,
         description="Update a hardware",
         operations=[
             {
@@ -40,7 +40,7 @@ rules = [
     ),
     policy.DocumentedRuleDefault(
         name=HARDWARE % "delete",
-        check_str=base.RULE_ADMIN_OR_OWNER,
+        check_str=policies.SYSTEM_ADMIN_OR_PROJECT_MEMBER,
         description="Delete a hardware",
         operations=[
             {
