@@ -70,10 +70,10 @@ class ContextMiddleware(object):
         request.context = doni_context.RequestContext.from_environ(request.environ)
 
     def after_request(self, res):
-        context = getattr(request, "context", None)
+        context: "doni_context.RequestContext" = getattr(request, "context", None)
 
         if context:
-            request_id = request.context.request_id
+            request_id = context.request_id
         else:
             # If a prior middleware short-circuited before this middleware, context
             # is not set. This can happen e.g. on unauthenticated requests.
