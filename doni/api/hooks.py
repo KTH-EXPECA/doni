@@ -10,7 +10,7 @@ from keystonemiddleware.auth_token import AuthProtocol
 from keystonemiddleware.auth_token._request import _AuthTokenRequest
 from oslo_log import log
 from oslo_policy.policy import PolicyNotAuthorized
-from webob import exc as ksm_exc
+from webob import exc as webob_exc
 
 if TYPE_CHECKING:
     from flask import Blueprint
@@ -59,7 +59,7 @@ class AuthTokenFlaskMiddleware(object):
             res = self.keystonemiddleware.process_request(auth_token_request)
             if res:
                 return res
-        except ksm_exc.HTTPError as exc:
+        except webob_exc.HTTPError as exc:
             return make_error_response(
                 "The request you have made requires authentication",
                 exc.status_code)
