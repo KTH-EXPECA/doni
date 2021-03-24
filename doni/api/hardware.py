@@ -28,11 +28,13 @@ HARDWARE_SCHEMA = {
     "type": "object",
     "properties": {
         "name": args.STRING,
-        "uuid": args.STRING,
         "hardware_type": args.STRING,
-        "project_id": args.STRING,
-        "properties": {"type": "object", "additionalProperties": True},
+        "properties": {
+            "type": "object",
+            "additionalProperties": True,
+        },
     },
+    "required": ["name", "hardware_type"],
     "additionalProperties": False,
 }
 
@@ -175,9 +177,12 @@ def get_one(hardware_uuid=None):
 def create(hardware_params=None):
     ctx = request.context
     assert hardware_params is not None
+    # Hardware will be owned by requesting user's project
+    hardware_params["project_id"] = ctx.project_id
+    hardware_params.setdefault("properties", {})
 
     hardware = Hardware(ctx, **hardware_params)
-    authorize("hardware:create", ctx, hardware)
+    authorize("hardware:create", ctx)
     serialize = hardware_serializer(with_private_fields=True)
     hardware.create()
 

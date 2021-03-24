@@ -22,13 +22,13 @@ class HardwareMatching(Hardware):
     """Check that an argument is a Hardware object w/ some exact field values.
     """
     def __init__(self, **kwargs):
-        self.fields = kwargs.copy()
+        self.field_requirements = kwargs.copy()
         super().__init__(**kwargs)
 
     def __eq__(self, other):
         return all(
             getattr(self, k, None) == getattr(other, k, None)
-            for k in self.fields.keys()
+            for k in self.field_requirements.keys()
         )
 
 
@@ -94,10 +94,11 @@ def test_missing_hardware(mocker, user_auth_headers, client: "FlaskClient"):
 
 
 def test_enroll_hardware(mocker, user_auth_headers, client: "FlaskClient"):
+    """Tests that enroll succeeds for valid payload.
+    """
     mock_authorize = mocker.patch("doni.api.hardware.authorize")
     enroll_payload = {
         "name": "fake-name",
-        "project_id": "fake-project_id",
         "hardware_type": utils.FAKE_HARDWARE_TYPE,
         "properties": {
             "default_required_field": "fake-default_required_field",
@@ -108,21 +109,34 @@ def test_enroll_hardware(mocker, user_auth_headers, client: "FlaskClient"):
         content_type="application/json",
         data=json.dumps(enroll_payload))
     assert res.status_code == 201
-    mock_authorize.assert_called_once_with("hardware:create", AnyContext(),
-        HardwareMatching(project_id="fake-project_id"))
+    mock_authorize.assert_called_once_with("hardware:create", AnyContext())
 
 
-def test_enroll_hardware_fails_validation(mocker, user_auth_headers, client: "FlaskClient"):
-    enroll_payload = {
+@pytest.mark.parametrize("payload", [
+    pytest.param({
+        "name": "fake-name",
+        "hardware_type": utils.FAKE_HARDWARE_TYPE,
+        "properties": {},
+    }, id="invalid_properties"),
+    pytest.param({
+        "name": "fake-name",
+    }, id="no_hardware_type"),
+    pytest.param({
         "name": "fake-name",
         "project_id": "fake-project_id",
         "hardware_type": utils.FAKE_HARDWARE_TYPE,
-        "properties": {},
-    }
+        "properties": {
+            "default_required_field": "fake-default_required_field",
+        },
+    }, id="has_project_id"),
+])
+def test_enroll_validation(payload, user_auth_headers, client: "FlaskClient"):
+    """Tests that validation fails for various cases.
+    """
     res = client.post(f"/v1/hardware/",
         headers=user_auth_headers,
         content_type="application/json",
-        data=json.dumps(enroll_payload))
+        data=json.dumps(payload))
     assert res.status_code == 400
 
 
@@ -133,7 +147,7 @@ FAKE_UUID = uuidutils.generate_uuid()
     pytest.param("/v1/hardware/", {
         "method": "POST",
         "content_type": "application/json",
-        "data": json.dumps({"name": "fake-name", "project_id": "fake_project_id"}),
+        "data": json.dumps({"name": "fake-name", "hardware_type": utils.FAKE_HARDWARE_TYPE}),
     }, id="enroll"),
 ])
 def test_policy_disallow(mocker, user_auth_headers, path, req_kwargs,
