@@ -1,3 +1,5 @@
+[![Unit tests](https://github.com/ChameleonCloud/doni/actions/workflows/test.yml/badge.svg)](https://github.com/ChameleonCloud/doni/actions/workflows/test.yml)
+
 # doni
 
 Chameleon hardware registration and enrollment service
