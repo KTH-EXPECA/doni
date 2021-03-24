@@ -1,5 +1,6 @@
 """Doni test utilities."""
 
+from datetime import datetime, timedelta
 from typing import TYPE_CHECKING
 
 from doni.common import driver_factory, exception
@@ -34,6 +35,19 @@ def get_test_hardware(**kw):
                 "public-and-sensitive-field": "fake-public-and-sensitive-field",
             },
         ),
+    }
+
+
+def get_test_availability_window(**kw):
+    default_uuid = uuidutils.generate_uuid()
+    return {
+        "created_at": kw.get("created_at"),
+        "updated_at": kw.get("updated_at"),
+        "id": kw.get("id", 456),
+        "uuid": kw.get("uuid", default_uuid),
+        "hardware_uuid": kw.get("hardware_uuid"),
+        "start": kw.get("start", datetime.now()),
+        "end": kw.get("end", datetime.now() + timedelta(days=1)),
     }
 
 
@@ -95,6 +109,7 @@ class DBFixtures(object):
     def __init__(self):
         self.db = db_api.get_instance()
         self._hardwares = []
+        self._availability_windows = []
         self._counter = 0
 
     def add_hardware(self, **hardware_kwargs) -> dict:
@@ -114,6 +129,15 @@ class DBFixtures(object):
         fake_hw.pop("id")
         self._hardwares.append(self.db.create_hardware(fake_hw))
         return fake_hw
+
+    def add_availability_window(self, **window_kwargs) -> dict:
+        fake_window = get_test_availability_window(**window_kwargs)
+        # ID will be auto-assigned by DB
+        fake_window.pop("id")
+        self._availability_windows.append(
+            self.db.create_availability_window(fake_window)
+        )
+        return fake_window
 
     def remove_hardware(self, hardware_uuid):
         """Remove a hardware item from the test database.
@@ -142,6 +166,13 @@ class DBFixtures(object):
                 # Allow tests to destroy hardware
                 pass
         self._hardwares = []
+
+        for aw in self._availability_windows:
+            try:
+                self.db.destroy_availability_window(aw.uuid)
+            except exception.AvailabilityWindowNotFound:
+                pass
+        self._availability_windows = []
 
 
 class MockResponse:

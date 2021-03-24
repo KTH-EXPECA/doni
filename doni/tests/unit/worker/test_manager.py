@@ -47,10 +47,38 @@ def test_process_pending_success(
     admin_context: "RequestContext",
     database: "utils.DBFixtures",
 ):
-    for _ in range(10):
+    fake_hw = database.add_hardware()
+    # Add more items for processing
+    for _ in range(9):
         database.add_hardware()
+    assert len(WorkerTask.list_pending(admin_context)) == 10
+
+    manager.process_pending(admin_context)
+
+    assert len(WorkerTask.list_pending(admin_context)) == 0
+    tasks = WorkerTask.list_for_hardware(admin_context, database.hardwares[0]["uuid"])
+    assert len(tasks) == 1
+    assert tasks[0].state == WorkerState.STEADY
+    assert tasks[0].state_details == {
+        "fake-result": fake_hw["uuid"],
+        "fake-availability_windows": [],
+    }
+
+
+def test_process_with_windows(
+    mocker: "MockerFixture",
+    manager: "WorkerManager",
+    admin_context: "RequestContext",
+    database: "utils.DBFixtures",
+):
+    fake_hw = database.add_hardware()
+    fake_window = database.add_availability_window(hardware_uuid=fake_hw["uuid"])
     manager.process_pending(admin_context)
     assert len(WorkerTask.list_pending(admin_context)) == 0
     tasks = WorkerTask.list_for_hardware(admin_context, database.hardwares[0]["uuid"])
     assert len(tasks) == 1
     assert tasks[0].state == WorkerState.STEADY
+    assert tasks[0].state_details == {
+        "fake-result": fake_hw["uuid"],
+        "fake-availability_windows": [fake_window["uuid"]],
+    }

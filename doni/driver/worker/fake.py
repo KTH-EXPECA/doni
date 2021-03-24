@@ -27,7 +27,7 @@ class FakeWorker(BaseWorker):
         print(f"fake: processing hardware {hardware.uuid}")
         return WorkerResult.Success(
             {
-                "fake-result": f"fake-worker-prefix-{hardware.uuid}",
-                "fake-availability-windows": [aw.uuid for aw in availability_windows],
+                "fake-result": hardware.uuid,
+                "fake-availability_windows": [aw.uuid for aw in availability_windows],
             }
         )

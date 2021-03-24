@@ -190,6 +190,30 @@ class Connection(object):
         # TODO: how to communicate that hardware doesn't exist?
         return query.all()
 
+    def create_availability_window(self, values: dict) -> "models.AvailabilityWindow":
+        if "uuid" not in values:
+            values["uuid"] = uuidutils.generate_uuid()
+
+        window = models.AvailabilityWindow()
+        window.update(values)
+
+        with _session_for_write() as session:
+            try:
+                session.add(window)
+            except db_exc.DBDuplicateEntry as exc:
+                raise exception.HardwareAlreadyExists(uuid=values["uuid"])
+        return window
+
+    @oslo_db_api.retry_on_deadlock
+    def destroy_availability_window(self, window_uuid: str):
+        with _session_for_write() as session:
+            query = session.query(models.AvailabilityWindow).filter_by(uuid=window_uuid)
+            try:
+                _ = query.one()
+            except NoResultFound:
+                raise exception.AvailabilityWindowNotFound(window=window_uuid)
+            query.delete()
+
     def get_availability_window_list(self) -> "list[models.AvailabilityWindow]":
         query = model_query(models.AvailabilityWindow)
         return query.all()
