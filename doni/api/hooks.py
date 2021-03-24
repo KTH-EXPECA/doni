@@ -36,10 +36,7 @@ class AuthTokenFlaskMiddleware(object):
                 "oslo_config_config": CONF,
             },
         )
-        self.public_paths = [
-            "/",
-            "/v1/hardware/export/"
-        ]
+        self.public_paths = ["/", "/v1/hardware/export/"]
 
     def before_request(self):
         if request.path in self.public_paths:
@@ -62,8 +59,8 @@ class AuthTokenFlaskMiddleware(object):
                 return res
         except webob_exc.HTTPError as exc:
             return make_error_response(
-                "The request you have made requires authentication",
-                exc.status_code)
+                "The request you have made requires authentication", exc.status_code
+            )
 
 
 class ContextMiddleware(object):
@@ -120,12 +117,15 @@ def route(rule, blueprint: "Blueprint" = None, json_body=None, **options):
                 return make_error_response(str(exc), 403)
             except exception.NotFound as exc:
                 return make_error_response(str(exc), 404)
+            except exception.Conflict as exc:
+                return make_error_response(str(exc), 409)
             except werkzeug_exc.HTTPException as exc:
                 # Let Flask handle these with default behavior
                 raise
             except Exception as exc:
                 # FIXME: why won't this log for tests and we have to print()?
                 import traceback
+
                 traceback.print_exc()
                 LOG.exception(f"Unhandled error on {rule}: {exc}")
                 return make_error_response("An unknown error occurred.", 500)
