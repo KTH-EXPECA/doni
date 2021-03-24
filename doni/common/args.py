@@ -1,13 +1,13 @@
-from functools import partial, wraps
 import inspect
 import re
+from functools import partial, wraps
+from typing import TYPE_CHECKING
 
 import jsonschema
 from oslo_utils import uuidutils
 
 from doni.common import exception
 
-from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from typing import Optional
 
@@ -29,7 +29,8 @@ def uuid(name, value) -> "Optional[str]":
         return
     if not uuidutils.is_uuid_like(value):
         raise exception.InvalidParameterValue(
-            ('Expected UUID for %s: %s') % (name, value))
+            ("Expected UUID for %s: %s") % (name, value)
+        )
     return value
 
 
@@ -37,9 +38,13 @@ def uuid(name, value) -> "Optional[str]":
 STRING = {"type": "string"}
 DATETIME = {"type": "string", "format": "date-time"}
 PORT_RANGE = {"type": "integer", "minimum": 1, "maximum": 65536}
-HOST_OR_IP = {"oneOf": [{"type": "string", "format": "hostname"},
-                        {"type": "string", "format": "ipv4"},
-                        {"type": "string", "format": "ipv6"}]}
+HOST_OR_IP = {
+    "oneOf": [
+        {"type": "string", "format": "hostname"},
+        {"type": "string", "format": "ipv4"},
+        {"type": "string", "format": "ipv6"},
+    ]
+}
 NETWORK_DEVICE = {
     "type": "object",
     "properties": {
@@ -54,17 +59,17 @@ NETWORK_DEVICE = {
     "additionalProperties": False,
 }
 PATCH = {
-    'type': 'array',
-    'items': {
-        'type': 'object',
-        'properties': {
-            'path': {'type': 'string', 'pattern': '^(/[\\w-]+)+$'},
-            'op': {'type': 'string', 'enum': ['add', 'replace', 'remove']},
-            'value': {}
+    "type": "array",
+    "items": {
+        "type": "object",
+        "properties": {
+            "path": {"type": "string", "pattern": "^(/[\\w-]+)+$"},
+            "op": {"type": "string", "enum": ["add", "replace", "remove"]},
+            "value": {},
         },
-        'additionalProperties': False,
-        'required': ['op', 'path']
-    }
+        "additionalProperties": False,
+        "required": ["op", "path"],
+    },
 }
 
 
@@ -125,17 +130,14 @@ def _inspect(function):
         if param.kind == inspect.Parameter.POSITIONAL_OR_KEYWORD:
             params.append(param)
         else:
-            assert False, 'Unsupported parameter kind %s %s' % (
-                param.name, param.kind
-            )
+            assert False, "Unsupported parameter kind %s %s" % (param.name, param.kind)
     return params
 
 
 def validate(*args, **kwargs):
-    """Decorator which validates and transforms function arguments
-    """
-    assert not args, 'Validators must be specifed by argument name'
-    assert kwargs, 'No validators specified'
+    """Decorator which validates and transforms function arguments"""
+    assert not args, "Validators must be specifed by argument name"
+    assert kwargs, "No validators specified"
     validators = kwargs
 
     def inner_function(function):
@@ -152,7 +154,8 @@ def validate(*args, **kwargs):
             extra_args = kwarg_keys - param_names
             if extra_args:
                 raise exception.InvalidParameterValue(
-                    ('Unexpected arguments: %s') % ', '.join(extra_args))
+                    ("Unexpected arguments: %s") % ", ".join(extra_args)
+                )
 
             args_len = len(args)
 
@@ -167,13 +170,17 @@ def validate(*args, **kwargs):
                 elif param.name in kwargs:
                     # validate keyword argument
                     kwargs_next[param.name] = val_function(
-                        param.name, kwargs.pop(param.name))
+                        param.name, kwargs.pop(param.name)
+                    )
                 elif param.default == inspect.Parameter.empty:
                     # no argument was provided, and there is no default
                     # in the parameter, so this is a mandatory argument
                     raise exception.MissingParameterValue(
-                        ('Missing mandatory parameter: %s') % param.name)
+                        ("Missing mandatory parameter: %s") % param.name
+                    )
 
             return function(*args, **kwargs_next)
+
         return inner_check_args
+
     return inner_function
