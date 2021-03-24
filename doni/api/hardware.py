@@ -98,8 +98,8 @@ def hardware_serializer(with_private_fields=False):
         A function that takes a Hardware object as its sole argument and returns
             a JSON-safe dictionary value representing the serialized object.
     """
-    enabled_workers = driver_factory.worker_types()
-    enabled_hardware_types = driver_factory.hardware_types()
+    globally_enabled_workers = driver_factory.worker_types()
+    globally_enabled_hardware_types = driver_factory.hardware_types()
 
     def _mask_sensitive(value):
         return "*" * 12
@@ -108,10 +108,12 @@ def hardware_serializer(with_private_fields=False):
         hardware_json = api_utils.object_to_dict(hardware, fields=DEFAULT_FIELDS)
         properties = hardware_json["properties"].copy()
 
-        hwt = enabled_hardware_types[hardware.hardware_type]
+        hwt = globally_enabled_hardware_types[hardware.hardware_type]
         worker_fields: "list[WorkerField]" = hwt.default_fields.copy()
         for worker_type in hwt.enabled_workers:
-            worker_fields.extend(enabled_workers[worker_type].fields)
+            if worker_type not in globally_enabled_workers:
+                continue
+            worker_fields.extend(globally_enabled_workers[worker_type].fields)
 
         # Filter all hardware properties down based on what workers are active
         # for the given hardware.
