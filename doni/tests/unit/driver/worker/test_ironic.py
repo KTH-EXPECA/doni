@@ -12,6 +12,7 @@ from doni.tests.unit import utils
 from doni.worker import WorkerResult
 
 from typing import TYPE_CHECKING
+
 if TYPE_CHECKING:
     from doni.common.context import RequestContext
 
@@ -26,7 +27,9 @@ def ironic_worker(test_config):
     Much of this is black magic to appease the gods of oslo_config.
     """
     # Configure the app to use a hardware type valid for this worker.
-    test_config.config(enabled_hardware_types=["baremetal"], enabled_worker_types=["ironic"])
+    test_config.config(
+        enabled_hardware_types=["baremetal"], enabled_worker_types=["ironic"]
+    )
 
     worker = IronicWorker()
     worker.register_opts(test_config)
@@ -57,23 +60,34 @@ def get_fake_ironic(mocker, request_fn):
     mock_adapter = mock.MagicMock()
     mock_request = mock_adapter.request
     mock_request.side_effect = request_fn
-    mocker.patch("doni.driver.worker.ironic._get_ironic_adapter").return_value = mock_adapter
+    mocker.patch(
+        "doni.driver.worker.ironic._get_ironic_adapter"
+    ).return_value = mock_adapter
     return mock_request
 
 
 def get_fake_hardware(database: "utils.DBFixtures"):
-    db_hw = database.add_hardware(uuid=TEST_HARDWARE_UUID, hardware_type="baremetal", properties={
-        "baremetal_driver": "fake-driver",
-        "management_address": "fake-management_address",
-        "ipmi_username": "fake-ipmi_username",
-        "ipmi_password": "fake-ipmi_password",
-    })
+    db_hw = database.add_hardware(
+        uuid=TEST_HARDWARE_UUID,
+        hardware_type="baremetal",
+        properties={
+            "baremetal_driver": "fake-driver",
+            "management_address": "fake-management_address",
+            "ipmi_username": "fake-ipmi_username",
+            "ipmi_password": "fake-ipmi_password",
+        },
+    )
     return Hardware(**db_hw)
 
 
-def test_ironic_create_node(mocker, admin_context: "RequestContext",
-                            ironic_worker: "IronicWorker", database: "utils.DBFixtures"):
+def test_ironic_create_node(
+    mocker,
+    admin_context: "RequestContext",
+    ironic_worker: "IronicWorker",
+    database: "utils.DBFixtures",
+):
     """Test that new nodes are created if not already existing."""
+
     def _fake_ironic_for_create(path, method=None, json=None, **kwargs):
         if method == "get" and path == f"/nodes/{TEST_HARDWARE_UUID}":
             return utils.MockResponse(404)
@@ -98,11 +112,16 @@ def test_ironic_create_node(mocker, admin_context: "RequestContext",
     assert fake_ironic.call_count == 2
 
 
-def test_ironic_update_node(mocker, admin_context: "RequestContext",
-                            ironic_worker: "IronicWorker", database: "utils.DBFixtures"):
+def test_ironic_update_node(
+    mocker,
+    admin_context: "RequestContext",
+    ironic_worker: "IronicWorker",
+    database: "utils.DBFixtures",
+):
     """Test that existing nodes are patched from hardware properties."""
     get_node_count = 0
     patch_node_count = 0
+
     def _fake_ironic_for_update(path, method=None, json=None, **kwargs):
         if method == "get" and path == f"/nodes/{TEST_HARDWARE_UUID}":
             nonlocal get_node_count
@@ -111,37 +130,40 @@ def test_ironic_update_node(mocker, admin_context: "RequestContext",
                 provision_state = "manageable"
             else:
                 provision_state = "available"
-            return utils.MockResponse(200, {
-                "uuid": TEST_HARDWARE_UUID,
-                "name": "ironic-name",
-                "maintenance": False,
-                "provision_state": provision_state,
-                "driver": "fake-driver",
-                "driver_info": {
-                    # Ironic-provided value should be replaced
-                    "ipmi_address": "ironic-ipmi_address",
-                    "ipmi_username": "fake-ipmi_username",
-                    "ipmi_password": "fake-ipmi_password",
-                    "ipmi_terminal_port": 30000,
+            return utils.MockResponse(
+                200,
+                {
+                    "uuid": TEST_HARDWARE_UUID,
+                    "name": "ironic-name",
+                    "maintenance": False,
+                    "provision_state": provision_state,
+                    "driver": "fake-driver",
+                    "driver_info": {
+                        # Ironic-provided value should be replaced
+                        "ipmi_address": "ironic-ipmi_address",
+                        "ipmi_username": "fake-ipmi_username",
+                        "ipmi_password": "fake-ipmi_password",
+                        "ipmi_terminal_port": 30000,
+                    },
                 },
-            })
+            )
         elif method == "patch" and path == f"/nodes/{TEST_HARDWARE_UUID}":
             nonlocal patch_node_count
             patch_node_count += 1
             if patch_node_count == 1:
                 # Validate patch for node properties
-                assert json == [{
-                    "op": "replace",
-                    "path": "/driver_info/ipmi_address",
-                    "value": "fake-management_address"
-                }]
+                assert json == [
+                    {
+                        "op": "replace",
+                        "path": "/driver_info/ipmi_address",
+                        "value": "fake-management_address",
+                    }
+                ]
             else:
                 # Validate patch for setting node to available
-                assert json == [{
-                    "op": "replace",
-                    "path": "/provision_state",
-                    "value": "available"
-                }]
+                assert json == [
+                    {"op": "replace", "path": "/provision_state", "value": "available"}
+                ]
             return utils.MockResponse(200)
         raise NotImplementedError("Unexpected request signature")
 
@@ -160,15 +182,23 @@ def test_ironic_update_node(mocker, admin_context: "RequestContext",
     assert fake_ironic.call_count == 4
 
 
-def test_ironic_update_defer_on_maintenance(mocker, admin_context: "RequestContext",
-                                            ironic_worker: "IronicWorker", database: "utils.DBFixtures"):
+def test_ironic_update_defer_on_maintenance(
+    mocker,
+    admin_context: "RequestContext",
+    ironic_worker: "IronicWorker",
+    database: "utils.DBFixtures",
+):
     """Test that nodes in maintenance mode are not updated."""
+
     def _fake_ironic_for_maintenance(path, method=None, json=None, **kwargs):
         if method == "get" and path == f"/nodes/{TEST_HARDWARE_UUID}":
-            return utils.MockResponse(200, {
-                "uuid": TEST_HARDWARE_UUID,
-                "maintenance": True,
-            })
+            return utils.MockResponse(
+                200,
+                {
+                    "uuid": TEST_HARDWARE_UUID,
+                    "maintenance": True,
+                },
+            )
         raise NotImplementedError("Unexpected request signature")
 
     fake_ironic = get_fake_ironic(mocker, _fake_ironic_for_maintenance)
@@ -180,26 +210,33 @@ def test_ironic_update_defer_on_maintenance(mocker, admin_context: "RequestConte
     assert fake_ironic.call_count == 1
 
 
-def test_ironic_provision_state_timeout(mocker, admin_context: "RequestContext",
-                                        ironic_worker: "IronicWorker", database: "utils.DBFixtures"):
+def test_ironic_provision_state_timeout(
+    mocker,
+    admin_context: "RequestContext",
+    ironic_worker: "IronicWorker",
+    database: "utils.DBFixtures",
+):
     """Test that nodes in maintenance mode are not updated."""
+
     def _fake_ironic_for_timeout(path, method=None, json=None, **kwargs):
         if method == "get" and path == f"/nodes/{TEST_HARDWARE_UUID}":
-            return utils.MockResponse(200, {
-                "uuid": TEST_HARDWARE_UUID,
-                "maintenance": False,
-                "provision_state": "available",
-            })
+            return utils.MockResponse(
+                200,
+                {
+                    "uuid": TEST_HARDWARE_UUID,
+                    "maintenance": False,
+                    "provision_state": "available",
+                },
+            )
         elif method == "patch" and path == f"/nodes/{TEST_HARDWARE_UUID}":
-            assert json == [{
-                "op": "replace",
-                "path": "/provision_state",
-                "value": "manageable"
-            }]
+            assert json == [
+                {"op": "replace", "path": "/provision_state", "value": "manageable"}
+            ]
             return utils.MockResponse(200)
         raise NotImplementedError("Unexpected request signature")
 
     count = int(time.perf_counter())
+
     def _fake_perf_counter():
         nonlocal count
         count += 15
@@ -218,9 +255,14 @@ def test_ironic_provision_state_timeout(mocker, admin_context: "RequestContext",
     assert fake_ironic.call_count == 2 + (PROVISION_STATE_TIMEOUT / 15)
 
 
-def test_ironic_update_defer_on_locked(mocker, admin_context: "RequestContext",
-                                       ironic_worker: "IronicWorker", database: "utils.DBFixtures"):
+def test_ironic_update_defer_on_locked(
+    mocker,
+    admin_context: "RequestContext",
+    ironic_worker: "IronicWorker",
+    database: "utils.DBFixtures",
+):
     """Test that nodes in locked state are deferred."""
+
     def _fake_ironic_for_locked(path, method=None, json=None, **kwargs):
         if method == "get" and path == f"/nodes/{TEST_HARDWARE_UUID}":
             return utils.MockResponse(409)

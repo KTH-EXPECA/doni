@@ -22,7 +22,10 @@ AVAILABILITY_WINDOW_SCHEMA = {
 
 AVAILABILITY_WINDOW_VALIDATOR = args.schema(AVAILABILITY_WINDOW_SCHEMA)
 
-DEFAULT_FIELDS = ('start', 'end',)
+DEFAULT_FIELDS = (
+    "start",
+    "end",
+)
 
 
 @route("/<uuid:hardware_uuid>/availability/", methods=["GET"], blueprint=bp)
@@ -33,6 +36,6 @@ def get_all(hardware_uuid):
     return {
         "availability": [
             api_utils.object_to_dict(win, fields=DEFAULT_FIELDS)
-            for win in AvailabilityWindow.list(ctx, str(hardware_uuid))
+            for win in AvailabilityWindow.list_for_hardware(ctx, str(hardware_uuid))
         ],
     }

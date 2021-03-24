@@ -3,8 +3,10 @@ import abc
 from doni.common import args
 
 from typing import TYPE_CHECKING
+
 if TYPE_CHECKING:
     from doni.common.context import RequestContext
+    from doni.objects.availability_window import AvailabilityWindow
     from doni.objects.hardware import Hardware
     from oslo_config.cfg import Opt
 
@@ -27,7 +29,7 @@ class WorkerResult:
 
         payload: dict = {}
 
-        def __init__(self, payload: dict=None):
+        def __init__(self, payload: dict = None):
             self.payload = payload
 
     class Defer(Base):
@@ -39,8 +41,7 @@ class WorkerResult:
         """
 
     class Success(Base):
-        """Indicates that the worker completed successfully.
-        """
+        """Indicates that the worker completed successfully."""
 
 
 class BaseWorker(abc.ABC):
@@ -58,7 +59,13 @@ class BaseWorker(abc.ABC):
     opt_group: str = ""
 
     @abc.abstractmethod
-    def process(self, context: "RequestContext", hardware: "Hardware") -> "WorkerResult.Base":
+    def process(
+        self,
+        context: "RequestContext",
+        hardware: "Hardware",
+        availability_windows: "list[AvailabilityWindow]" = None,
+        state_details: "dict" = None,
+    ) -> "WorkerResult.Base":
         pass
 
     def register_opts(self, conf):
@@ -76,10 +83,7 @@ class BaseWorker(abc.ABC):
         """
         return {
             "type": "object",
-            "properties": {
-                field.name: field.schema or {}
-                for field in self.fields
-            },
+            "properties": {field.name: field.schema or {} for field in self.fields},
             "required": [field.name for field in self.fields if field.required],
         }
 
@@ -113,8 +117,17 @@ class WorkerField(object):
         description (str): A user-friendly description of the field's purpose
             and contents.
     """
-    def __init__(self, name, schema=None, default=None, required=False,
-                 private=False, sensitive=False, description=None):
+
+    def __init__(
+        self,
+        name,
+        schema=None,
+        default=None,
+        required=False,
+        private=False,
+        sensitive=False,
+        description=None,
+    ):
         self.name = name
         self.schema = schema or args.STRING
         self.default = default

@@ -15,6 +15,7 @@
 """Doni common internal object model"""
 
 from typing import TYPE_CHECKING
+
 if TYPE_CHECKING:
     from doni.db.models import DoniBase
     from doni.common.context import RequestContext
@@ -37,12 +38,12 @@ class DoniObject(object_base.VersionedObject):
     as appropriate.
     """
 
-    OBJ_SERIAL_NAMESPACE = 'doni_object'
+    OBJ_SERIAL_NAMESPACE = "doni_object"
     OBJ_PROJECT_NAMESPACE = PROJECT_NAME
 
     fields = {
-        'created_at': object_fields.DateTimeField(nullable=True),
-        'updated_at': object_fields.DateTimeField(nullable=True),
+        "created_at": object_fields.DateTimeField(nullable=True),
+        "updated_at": object_fields.DateTimeField(nullable=True),
     }
 
     def as_dict(self):
@@ -50,6 +51,7 @@ class DoniObject(object_base.VersionedObject):
 
         The returned object is JSON-serialisable.
         """
+
         def _attr_as_dict(field):
             """Return an attribute as a dict, handling nested objects."""
             attr = getattr(self, field)
@@ -57,12 +59,16 @@ class DoniObject(object_base.VersionedObject):
                 attr = attr.as_dict()
             return attr
 
-        return dict((k, _attr_as_dict(k))
-                    for k in self.fields
-                    if self.obj_attr_is_set(k))
+        return dict(
+            (k, _attr_as_dict(k)) for k in self.fields if self.obj_attr_is_set(k)
+        )
 
-    def _set_from_db_object(self, context: "RequestContext",
-                            db_object: "DoniBase", fields: "list[str]"=None):
+    def _set_from_db_object(
+        self,
+        context: "RequestContext",
+        db_object: "DoniBase",
+        fields: "list[str]" = None,
+    ):
         """Sets object fields.
 
         Args:
@@ -76,8 +82,12 @@ class DoniObject(object_base.VersionedObject):
             setattr(self, field, db_object[field])
 
     @staticmethod
-    def _from_db_object(context: "RequestContext", obj: "DoniObject",
-                        db_object: "DoniBase", fields: "list[str]"=None):
+    def _from_db_object(
+        context: "RequestContext",
+        obj: "DoniObject",
+        db_object: "DoniBase",
+        fields: "list[str]" = None,
+    ):
         """Converts a database entity to a formal object.
 
         Args:
@@ -110,8 +120,12 @@ class DoniObject(object_base.VersionedObject):
         return obj
 
     @classmethod
-    def _from_db_object_list(cls, context: "RequestContext",
-                             db_objects: "list[DoniBase]"):
+    def _from_db_object_list(
+        cls,
+        context: "RequestContext",
+        db_objects: "list[DoniBase]",
+        fields: "list[str]" = None,
+    ):
         """Returns objects corresponding to database entities.
 
         Returns a list of formal objects of this class that correspond to
@@ -125,17 +139,17 @@ class DoniObject(object_base.VersionedObject):
         Returns:
             A list of objects corresponding to the database entities.
         """
-        return [cls._from_db_object(context, cls(), db_obj)
-                for db_obj in db_objects]
+        return [
+            cls._from_db_object(context, cls(), db_obj, fields) for db_obj in db_objects
+        ]
 
 
 class DoniObjectListBase(object_base.ObjectListBase):
-
     def as_dict(self):
         """Return the object represented as a dict.
         The returned object is JSON-serialisable.
         """
-        return {'objects': [obj.as_dict() for obj in self.objects]}
+        return {"objects": [obj.as_dict() for obj in self.objects]}
 
 
 class DoniObjectRegistry(object_base.VersionedObjectRegistry):
@@ -145,4 +159,5 @@ class DoniObjectRegistry(object_base.VersionedObjectRegistry):
     @DoniObjectRegistry.register decorator in order to set up the proxy
     attr setters and getters that make the object functional.
     """
+
     pass

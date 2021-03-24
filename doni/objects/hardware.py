@@ -5,26 +5,28 @@ from doni.objects import base
 from doni.objects import fields as object_fields
 
 from typing import TYPE_CHECKING
+
 if TYPE_CHECKING:
     from doni.common.context import RequestContext
+
 
 @base.DoniObjectRegistry.register
 class Hardware(base.DoniObject):
     # Version 1.0: Initial version
-    VERSION = '1.0'
+    VERSION = "1.0"
 
     dbapi = db_api.get_instance()
 
     fields = {
-        'id': object_fields.IntegerField(),
-        'uuid': object_fields.UUIDField(),
-        'hardware_type': object_fields.StringField(),
-        'project_id': object_fields.StringField(),
-        'name': object_fields.StringField(),
-        'properties': object_fields.FlexibleDictField(default={}),
+        "id": object_fields.IntegerField(),
+        "uuid": object_fields.UUIDField(),
+        "hardware_type": object_fields.StringField(),
+        "project_id": object_fields.StringField(),
+        "name": object_fields.StringField(),
+        "properties": object_fields.FlexibleDictField(default={}),
     }
 
-    def create(self, context: "RequestContext"=None):
+    def create(self, context: "RequestContext" = None):
         """Create a Hardware record in the DB.
 
         Args:
@@ -38,7 +40,7 @@ class Hardware(base.DoniObject):
         db_hardware = self.dbapi.create_hardware(values)
         self._from_db_object(self._context, self, db_hardware)
 
-    def save(self, context: "RequestContext"=None):
+    def save(self, context: "RequestContext" = None):
         """Save updates to this Hardware.
 
         Column-wise updates will be made based on the result of
@@ -82,7 +84,8 @@ class Hardware(base.DoniObject):
             HardwareNotFound: if the hardware no longer appears in the database.
         """
         db_hardware = cls.dbapi.get_hardware_by_id(hardware_id)
-        hardware = cls._from_db_object(context, cls(), db_hardware)
+        obj = cls()
+        hardware = cls._from_db_object(context, obj, db_hardware)
         return hardware
 
     @classmethod
@@ -100,7 +103,8 @@ class Hardware(base.DoniObject):
             HardwareNotFound: if the hardware no longer appears in the database.
         """
         db_hardware = cls.dbapi.get_hardware_by_uuid(uuid)
-        hardware = cls._from_db_object(context, cls(), db_hardware)
+        obj = cls()
+        hardware = cls._from_db_object(context, obj, db_hardware)
         return hardware
 
     @classmethod
@@ -118,12 +122,19 @@ class Hardware(base.DoniObject):
             HardwareNotFound: if the hardware no longer appears in the database.
         """
         db_hardware = cls.dbapi.get_hardware_by_name(name)
-        hardware = cls._from_db_object(context, cls(), db_hardware)
+        obj = cls()
+        hardware = cls._from_db_object(context, obj, db_hardware)
         return hardware
 
     @classmethod
-    def list(cls, context: "RequestContext", limit: int=None, marker: str=None,
-             sort_key: str=None, sort_dir: str=None) -> "list[Hardware]":
+    def list(
+        cls,
+        context: "RequestContext",
+        limit: int = None,
+        marker: str = None,
+        sort_key: str = None,
+        sort_dir: str = None,
+    ) -> "list[Hardware]":
         """Return a list of Hardware objects.
 
         Args:
@@ -138,5 +149,6 @@ class Hardware(base.DoniObject):
             A list of :class:`Hardware` objects.
         """
         db_hardwares = cls.dbapi.get_hardware_list(
-            limit=limit, marker=marker, sort_key=sort_key, sort_dir=sort_dir)
+            limit=limit, marker=marker, sort_key=sort_key, sort_dir=sort_dir
+        )
         return cls._from_db_object_list(context, db_hardwares)
