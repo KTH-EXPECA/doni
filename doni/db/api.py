@@ -105,9 +105,11 @@ class Connection(object):
         with _session_for_write() as session:
             try:
                 session.add(hardware)
+                # Flush the hardware INSERT so that the foreign key constraint
+                # for the worker tasks (on hardware UUID) can be satisfied.
+                session.flush()
                 for task in worker_tasks:
                     session.add(task)
-                session.flush()
             except db_exc.DBDuplicateEntry as exc:
                 if 'name' in exc.columns:
                     raise exception.HardwareDuplicateName(name=values['name'])
