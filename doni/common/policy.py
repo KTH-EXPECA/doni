@@ -7,6 +7,7 @@ from oslo_policy import policy
 from doni import PROJECT_NAME
 
 from typing import TYPE_CHECKING
+
 if TYPE_CHECKING:
     from doni.common.context import RequestContext
     from doni.objects.base import DoniBase
@@ -14,55 +15,34 @@ if TYPE_CHECKING:
 CONF = cfg.CONF
 _ENFORCER = None
 
-SYSTEM_ADMIN = 'role:admin'
-SYSTEM_ADMIN_OR_PROJECT_MEMBER = 'role:admin or project_id:%(project_id)s'
-HARDWARE = "hardware:%s"
+SYSTEM_ADMIN = "role:admin"
+SYSTEM_ADMIN_OR_PROJECT_MEMBER = "role:admin or project_id:%(project_id)s"
 
 hardware_rules = [
     policy.DocumentedRuleDefault(
-        name=HARDWARE % "get",
+        name="hardware:get",
         check_str=SYSTEM_ADMIN_OR_PROJECT_MEMBER,
         description="Get hardware details",
-        operations=[
-            {
-                "path": "/v1/hardware/{hardware_uuid}",
-                "method": "GET"
-            }
-        ]
+        operations=[{"path": "/v1/hardware/{hardware_uuid}", "method": "GET"}],
     ),
     policy.DocumentedRuleDefault(
-        name=HARDWARE % "create",
+        name="hardware:create",
         check_str=SYSTEM_ADMIN,
         description="Enroll a hardware",
-        operations=[
-            {
-                "path": "/v1/hardware",
-                "method": "POST"
-            }
-        ]
+        operations=[{"path": "/v1/hardware", "method": "POST"}],
     ),
     policy.DocumentedRuleDefault(
-        name=HARDWARE % "update",
+        name="hardware:update",
         check_str=SYSTEM_ADMIN_OR_PROJECT_MEMBER,
         description="Update a hardware",
-        operations=[
-            {
-                "path": "/v1/hardware/{hardware_uuid}",
-                "method": "PATCH"
-            }
-        ]
+        operations=[{"path": "/v1/hardware/{hardware_uuid}", "method": "PATCH"}],
     ),
     policy.DocumentedRuleDefault(
-        name=HARDWARE % "delete",
+        name="hardware:delete",
         check_str=SYSTEM_ADMIN_OR_PROJECT_MEMBER,
         description="Delete a hardware",
-        operations=[
-            {
-                "path": "/v1/hardware/{hardware_uuid}",
-                "method": "DELETE"
-            }
-        ]
-    )
+        operations=[{"path": "/v1/hardware/{hardware_uuid}", "method": "DELETE"}],
+    ),
 ]
 
 
@@ -91,7 +71,7 @@ def get_oslo_policy_enforcer():
     # Start at 1 because cfg.CONF expects the equivalent of sys.argv[1:]
     i = 1
     while i < len(sys.argv):
-        if sys.argv[i].strip('-') in ['namespace', 'output-file']:
+        if sys.argv[i].strip("-") in ["namespace", "output-file"]:
             i += 2
             continue
         conf_args.append(sys.argv[i])
@@ -102,7 +82,7 @@ def get_oslo_policy_enforcer():
     return get_enforcer()
 
 
-def authorize(rule, context: "RequestContext", target: "DoniBase"=None):
+def authorize(rule, context: "RequestContext", target: "DoniBase" = None):
     """Check if the request is authorized according to a given rule.
 
     Args:
@@ -115,4 +95,5 @@ def authorize(rule, context: "RequestContext", target: "DoniBase"=None):
     """
     target = target.as_dict() if target else {}
     return get_enforcer().authorize(
-        rule, target, context.to_policy_values(), do_raise=True)
+        rule, target, context.to_policy_values(), do_raise=True
+    )

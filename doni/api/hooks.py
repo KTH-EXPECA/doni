@@ -1,5 +1,6 @@
 from functools import wraps
 from typing import TYPE_CHECKING
+import traceback
 
 from doni.api.utils import make_error_response
 from doni.common import context as doni_context
@@ -110,7 +111,9 @@ def route(rule, blueprint: "Blueprint" = None, json_body=None, **options):
             try:
                 if json_body:
                     kwargs[json_body] = request.json
-                return function(*args, **kwargs)
+                res = function(*args, **kwargs)
+                # Convert None to 204 No Content
+                return res or ("", 204)
             except exception.Invalid as exc:
                 return make_error_response(str(exc), 400)
             except PolicyNotAuthorized as exc:
@@ -124,8 +127,6 @@ def route(rule, blueprint: "Blueprint" = None, json_body=None, **options):
                 raise
             except Exception as exc:
                 # FIXME: why won't this log for tests and we have to print()?
-                import traceback
-
                 traceback.print_exc()
                 LOG.exception(f"Unhandled error on {rule}: {exc}")
                 return make_error_response("An unknown error occurred.", 500)

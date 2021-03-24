@@ -174,6 +174,16 @@ def get_one(hardware_uuid=None):
     return response
 
 
+@route("/<hardware_uuid>/", methods=["DELETE"], blueprint=bp)
+@args.validate(hardware_uuid=args.uuid)
+def destroy(hardware_uuid=None):
+    ctx = request.context
+    hardware = Hardware.get_by_uuid(ctx, hardware_uuid)
+    authorize("hardware:delete", ctx, hardware)
+    hardware.destroy()
+    return None
+
+
 @route("/", methods=["POST"], json_body="hardware_params", blueprint=bp)
 @args.validate(hardware_params=hardware_validator())
 def create(hardware_params=None):
