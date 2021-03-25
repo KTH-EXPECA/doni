@@ -7,6 +7,7 @@ from oslo_policy.policy import PolicyNotAuthorized
 from oslo_utils import uuidutils
 
 from doni.common.context import RequestContext
+from doni.objects.availability_window import AvailabilityWindow
 from doni.objects.hardware import Hardware
 from doni.tests.unit import utils
 
@@ -230,6 +231,122 @@ def test_update_hardware(
     )
     _assert_hardware_json_ok(res.json, {"uuid": FAKE_UUID, "name": "new-fake-name"})
     _assert_hardware_has_workers(res.json)
+
+
+@pytest.mark.parametrize(
+    "patch,expected_status",
+    [
+        pytest.param(
+            [
+                {
+                    "path": "/availability/-",
+                    "op": "add",
+                    "value": {"start": "x", "end": "y"},
+                }
+            ],
+            400,
+            id="add_invalid",
+        ),
+        pytest.param(
+            [
+                {
+                    "path": "/availability/-",
+                    "op": "add",
+                    "value": {
+                        "start": "2021-03-03T00:00:00Z",
+                        "end": "2021-04-01T00:00:00Z",
+                    },
+                }
+            ],
+            200,
+            id="add_valid",
+        ),
+        pytest.param(
+            [{"path": "/availability/0/start", "op": "replace", "value": "x"}],
+            400,
+            id="replace_invalid",
+        ),
+        pytest.param(
+            [{"path": "/availability/0/not_allowed_field", "op": "add", "value": "x"}],
+            400,
+            id="add_not_allowed_field",
+        ),
+        pytest.param(
+            [{"path": "/availability/0", "op": "remove"}],
+            200,
+            id="remove",
+        ),
+    ],
+)
+def test_update_availability(
+    mocker,
+    user_auth_headers,
+    patch,
+    expected_status,
+    client: "FlaskClient",
+    database: "utils.DBFixtures",
+):
+    database.add_hardware(uuid=FAKE_UUID)
+    database.add_availability_window(hardware_uuid=FAKE_UUID)
+    mock_authorize = mocker.patch("doni.api.hardware.authorize")
+    res = client.patch(
+        f"/v1/hardware/{FAKE_UUID}/",
+        headers=user_auth_headers,
+        content_type="application/json",
+        data=json.dumps(patch),
+    )
+    assert res.status_code == expected_status
+    mock_authorize.assert_called_once_with(
+        "hardware:update", AnyContext(), HardwareMatching(uuid=FAKE_UUID)
+    )
+
+
+def test_update_availability_final_state(
+    mocker,
+    user_auth_headers,
+    admin_context,
+    client: "FlaskClient",
+    database: "utils.DBFixtures",
+):
+    database.add_hardware(uuid=FAKE_UUID)
+    aw1 = database.add_availability_window(hardware_uuid=FAKE_UUID)
+    aw2 = database.add_availability_window(hardware_uuid=FAKE_UUID)
+    mocker.patch("doni.api.hardware.authorize")
+    patch = [
+        # Add new aw3 to end of list
+        {
+            "path": "/availability/-",
+            "op": "add",
+            "value": {
+                "start": "2021-03-03T00:00:00Z",
+                "end": "2021-04-01T00:00:00Z",
+            },
+        },
+        # Update aw2
+        {
+            "path": "/availability/1/start",
+            "op": "replace",
+            "value": "2021-03-04T00:00:00Z",
+        },
+        # Delete aw1
+        {
+            "path": "/availability/0",
+            "op": "remove",
+        },
+    ]
+    res = client.patch(
+        f"/v1/hardware/{FAKE_UUID}/",
+        headers=user_auth_headers,
+        content_type="application/json",
+        data=json.dumps(patch),
+    )
+    assert res.status_code == 200
+    windows = AvailabilityWindow.list_for_hardware(admin_context, FAKE_UUID)
+    assert len(windows) == 2
+    assert windows[0].uuid == aw2["uuid"]
+    assert windows[0].start.isoformat() == "2021-03-04T00:00:00+00:00"
+    assert windows[1].start.isoformat() == "2021-03-03T00:00:00+00:00"
+    assert windows[1].end.isoformat() == "2021-04-01T00:00:00+00:00"
 
 
 def test_destroy_hardware(

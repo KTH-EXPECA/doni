@@ -3,10 +3,6 @@ from typing import TYPE_CHECKING
 
 import oslo_db
 import sqlalchemy as sa
-from doni.common import driver_factory, exception
-from doni.conf import CONF
-from doni.db import models
-from doni.worker import WorkerState
 from oslo_db import api as oslo_db_api
 from oslo_db import exception as db_exc
 from oslo_db.sqlalchemy import enginefacade
@@ -15,6 +11,11 @@ from oslo_log import log
 from oslo_utils import uuidutils
 from osprofiler import sqlalchemy as osp_sqlalchemy
 from sqlalchemy.orm.exc import NoResultFound
+
+from doni.common import driver_factory, exception
+from doni.conf import CONF
+from doni.db import models
+from doni.worker import WorkerState
 
 if TYPE_CHECKING:
     from typing import ContextManager
@@ -190,6 +191,7 @@ class Connection(object):
         # TODO: how to communicate that hardware doesn't exist?
         return query.all()
 
+    @oslo_db_api.retry_on_deadlock
     def create_availability_window(self, values: dict) -> "models.AvailabilityWindow":
         if "uuid" not in values:
             values["uuid"] = uuidutils.generate_uuid()
@@ -200,9 +202,25 @@ class Connection(object):
         with _session_for_write() as session:
             try:
                 session.add(window)
+                session.flush()
             except db_exc.DBDuplicateEntry as exc:
                 raise exception.HardwareAlreadyExists(uuid=values["uuid"])
         return window
+
+    @oslo_db_api.retry_on_deadlock
+    def update_availability_window(
+        self, window_uuid: str, values: dict
+    ) -> "models.AvailabilityWindow":
+        if "uuid" in values:
+            msg = "Cannot overwrite UUID for existing AvailabilityWindow."
+            raise exception.InvalidParameterValue(msg=msg)
+
+        with _session_for_write() as session:
+            query = session.query(models.AvailabilityWindow).filter_by(uuid=window_uuid)
+            count = query.update(values)
+            if count != 1:
+                raise exception.AvailabilityWindowNotFound(window=window_uuid)
+            return query.one()
 
     @oslo_db_api.retry_on_deadlock
     def destroy_availability_window(self, window_uuid: str):

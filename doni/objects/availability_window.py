@@ -1,8 +1,8 @@
+from typing import TYPE_CHECKING
+
 from doni.db import api as db_api
 from doni.objects import base
 from doni.objects import fields as object_fields
-
-from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from doni.common.context import RequestContext
@@ -22,6 +22,38 @@ class AvailabilityWindow(base.DoniObject):
         "start": object_fields.DateTimeField(),
         "end": object_fields.DateTimeField(),
     }
+
+    def create(self, context: "RequestContext" = None):
+        """Create an AvailabilityWindow record in the DB.
+
+        Args:
+            context (RequestContext): security context.
+        """
+        values = self.obj_get_changes()
+        db_window = self.dbapi.create_availability_window(values)
+        self._from_db_object(self._context, self, db_window)
+
+    def save(self, context: "RequestContext" = None):
+        """Save updates to this AvailabilityWindow.
+
+        Column-wise updates will be made based on the result of
+        :func:`what_changed`.
+
+        Args:
+            context (RequestContext): security context.
+        """
+        updates = self.obj_get_changes()
+        db_window = self.dbapi.update_availability_window(self.uuid, updates)
+        self._from_db_object(self._context, self, db_window)
+
+    def destroy(self):
+        """Delete the AvailabilityWindow from the DB.
+
+        Args:
+            context (RequestContext): security context.
+        """
+        self.dbapi.destroy_availability_window(self.uuid)
+        self.obj_reset_changes()
 
     @classmethod
     def list_for_hardware(

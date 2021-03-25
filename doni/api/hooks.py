@@ -2,10 +2,6 @@ import traceback
 from functools import wraps
 from typing import TYPE_CHECKING
 
-from doni.api.utils import make_error_response
-from doni.common import context as doni_context
-from doni.common import exception
-from doni.conf import CONF
 from flask import request
 from keystonemiddleware.auth_token import AuthProtocol
 from keystonemiddleware.auth_token._request import _AuthTokenRequest
@@ -13,6 +9,11 @@ from oslo_log import log
 from oslo_policy.policy import PolicyNotAuthorized
 from webob import exc as webob_exc
 from werkzeug import exceptions as werkzeug_exc
+
+from doni.api.utils import make_error_response
+from doni.common import context as doni_context
+from doni.common import exception
+from doni.conf import CONF
 
 if TYPE_CHECKING:
     from flask import Blueprint

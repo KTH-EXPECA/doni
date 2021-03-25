@@ -1,6 +1,6 @@
 [[package]]
 name = "alembic"
-version = "1.5.7"
+version = "1.5.8"
 description = "A database migration tool for SQLAlchemy."
 category = "main"
 optional = false
@@ -423,9 +423,14 @@ python-versions = "*"
 
 [package.dependencies]
 attrs = ">=17.4.0"
+idna = {version = "*", optional = true, markers = "extra == \"format\""}
 importlib-metadata = {version = "*", markers = "python_version < \"3.8\""}
+jsonpointer = {version = ">1.13", optional = true, markers = "extra == \"format\""}
 pyrsistent = ">=0.14.0"
+rfc3987 = {version = "*", optional = true, markers = "extra == \"format\""}
 six = ">=1.11.0"
+strict-rfc3339 = {version = "*", optional = true, markers = "extra == \"format\""}
+webcolors = {version = "*", optional = true, markers = "extra == \"format\""}
 
 [package.extras]
 format = ["idna", "jsonpointer (>1.13)", "rfc3987", "strict-rfc3339", "webcolors"]
@@ -1070,7 +1075,7 @@ snowballstemmer = "*"
 
 [[package]]
 name = "pyflakes"
-version = "2.3.0"
+version = "2.3.1"
 description = "passive checker of Python programs"
 category = "dev"
 optional = false
@@ -1279,6 +1284,14 @@ python-versions = "*"
 idna2008 = ["idna"]
 
 [[package]]
+name = "rfc3987"
+version = "1.3.8"
+description = "Parsing and validation of URIs (RFC 3986) and IRIs (RFC 3987)"
+category = "main"
+optional = false
+python-versions = "*"
+
+[[package]]
 name = "routes"
 version = "2.5.1"
 description = "Routing Recognition and Generation Tools"
@@ -1383,6 +1396,14 @@ python-versions = "*"
 [package.dependencies]
 pbr = ">=2.0.0,<2.1.0 || >2.1.0"
 six = ">=1.10.0"
+
+[[package]]
+name = "strict-rfc3339"
+version = "0.7"
+description = "Strict, simple, lightweight RFC3339 functions"
+category = "main"
+optional = false
+python-versions = "*"
 
 [[package]]
 name = "tempita"
@@ -1519,6 +1540,14 @@ python-versions = ">=3.6"
 watchmedo = ["PyYAML (>=3.10)", "argh (>=0.24.1)"]
 
 [[package]]
+name = "webcolors"
+version = "1.11.1"
+description = "A library for working with color names and color values formats defined by HTML and CSS."
+category = "main"
+optional = false
+python-versions = ">=3.5,"
+
+[[package]]
 name = "webob"
 version = "1.8.7"
 description = "WSGI request and response object"
@@ -1576,12 +1605,12 @@ testing = ["pytest (>=4.6)", "pytest-checkdocs (>=1.2.3)", "pytest-flake8", "pyt
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.6"
-content-hash = "f7f12df66a849a9f3c7b3d66a68bbeb26465dde72381675b2e08a6530490af0a"
+content-hash = "584f94cc541f4a8124c5ab7cf81e44ec578090fb15af27142284c7e21fdde6db"
 
 [metadata.files]
 alembic = [
-    {file = "alembic-1.5.7-py2.py3-none-any.whl", hash = "sha256:f33d561f3ce2ca390f1c87ff3849cd7d97bb93bae9c91357727263498e10028f"},
-    {file = "alembic-1.5.7.tar.gz", hash = "sha256:66bbb0e7d6277b007dfe7e27237093c79b76cf4f94e6fbd0f7af6f9409546fe6"},
+    {file = "alembic-1.5.8-py2.py3-none-any.whl", hash = "sha256:8a259f0a4c8b350b03579d77ce9e810b19c65bf0af05f84efb69af13ad50801e"},
+    {file = "alembic-1.5.8.tar.gz", hash = "sha256:e27fd67732c97a1c370c33169ef4578cf96436fa0e7dcfaeeef4a917d0737d56"},
 ]
 amqp = [
     {file = "amqp-5.0.5-py3-none-any.whl", hash = "sha256:1e759a7f202d910939de6eca45c23a107f6b71111f41d1282c648e9ac3d21901"},
@@ -2041,8 +2070,8 @@ pydocstyle = [
     {file = "pydocstyle-6.0.0.tar.gz", hash = "sha256:164befb520d851dbcf0e029681b91f4f599c62c5cd8933fd54b1bfbd50e89e1f"},
 ]
 pyflakes = [
-    {file = "pyflakes-2.3.0-py2.py3-none-any.whl", hash = "sha256:910208209dcea632721cb58363d0f72913d9e8cf64dc6f8ae2e02a3609aba40d"},
-    {file = "pyflakes-2.3.0.tar.gz", hash = "sha256:e59fd8e750e588358f1b8885e5a4751203a0516e0ee6d34811089ac294c8806f"},
+    {file = "pyflakes-2.3.1-py2.py3-none-any.whl", hash = "sha256:7893783d01b8a89811dd72d7dfd4d84ff098e5eed95cfa8905b22bbffe52efc3"},
+    {file = "pyflakes-2.3.1.tar.gz", hash = "sha256:f5bc8ecabc05bb9d291eb5203d6810b49040f6ff446a756326104746cc00c1db"},
 ]
 pyinotify = [
     {file = "pyinotify-0.9.6.tar.gz", hash = "sha256:9c998a5d7606ca835065cdabc013ae6c66eb9ea76a00a1e3bc6e0cfe2b4f71f4"},
@@ -2170,6 +2199,10 @@ rfc3986 = [
     {file = "rfc3986-1.4.0-py2.py3-none-any.whl", hash = "sha256:af9147e9aceda37c91a05f4deb128d4b4b49d6b199775fd2d2927768abdc8f50"},
     {file = "rfc3986-1.4.0.tar.gz", hash = "sha256:112398da31a3344dc25dbf477d8df6cb34f9278a94fee2625d89e4514be8bb9d"},
 ]
+rfc3987 = [
+    {file = "rfc3987-1.3.8-py2.py3-none-any.whl", hash = "sha256:10702b1e51e5658843460b189b185c0366d2cf4cff716f13111b0ea9fd2dce53"},
+    {file = "rfc3987-1.3.8.tar.gz", hash = "sha256:d3c4d257a560d544e9826b38bc81db676890c79ab9d7ac92b39c7a253d5ca733"},
+]
 routes = [
     {file = "Routes-2.5.1-py2.py3-none-any.whl", hash = "sha256:fab5a042a3a87778eb271d053ca2723cadf43c95b471532a191a48539cb606ea"},
     {file = "Routes-2.5.1.tar.gz", hash = "sha256:b6346459a15f0cbab01a45a90c3d25caf980d4733d628b4cc1952b865125d053"},
@@ -2233,6 +2266,9 @@ statsd = [
 stevedore = [
     {file = "stevedore-1.32.0-py2.py3-none-any.whl", hash = "sha256:a4e7dc759fb0f2e3e2f7d8ffe2358c19d45b9b8297f393ef1256858d82f69c9b"},
     {file = "stevedore-1.32.0.tar.gz", hash = "sha256:18afaf1d623af5950cc0f7e75e70f917784c73b652a34a12d90b309451b5500b"},
+]
+strict-rfc3339 = [
+    {file = "strict-rfc3339-0.7.tar.gz", hash = "sha256:5cad17bedfc3af57b399db0fed32771f18fc54bbd917e85546088607ac5e1277"},
 ]
 tempita = [
     {file = "Tempita-0.5.2.tar.gz", hash = "sha256:cacecf0baa674d356641f1d406b8bff1d756d739c46b869a54de515d08e6fc9c"},
@@ -2324,6 +2360,10 @@ watchdog = [
     {file = "watchdog-2.0.2-py3-none-win_amd64.whl", hash = "sha256:0f7e9de9ba84af15e9e9fc29c3b13c972daa4d2b11de29aa86b26a26bc877c06"},
     {file = "watchdog-2.0.2-py3-none-win_ia64.whl", hash = "sha256:ac6adbdf32e1d180574f9d0819e80259ae48e68727e80c3d950ed5a023714c3e"},
     {file = "watchdog-2.0.2.tar.gz", hash = "sha256:532fedd993e75554671faa36cd04c580ced3fae084254a779afbbd8aaf00566b"},
+]
+webcolors = [
+    {file = "webcolors-1.11.1-py3-none-any.whl", hash = "sha256:b8cd5d865a25c51ff1218f0c90d0c0781fc64312a49b746b320cf50de1648f6e"},
+    {file = "webcolors-1.11.1.tar.gz", hash = "sha256:76f360636957d1c976db7466bc71dcb713bb95ac8911944dffc55c01cb516de6"},
 ]
 webob = [
     {file = "WebOb-1.8.7-py2.py3-none-any.whl", hash = "sha256:73aae30359291c14fa3b956f8b5ca31960e420c28c1bec002547fb04928cf89b"},

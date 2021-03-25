@@ -64,6 +64,8 @@ PATCH = {
         "type": "object",
         "properties": {
             "path": {"type": "string", "pattern": "^(/[\\w-]+)+$"},
+            # Only support a subset of possible operations
+            # http://jsonpatch.com/#operations
             "op": {"type": "string", "enum": ["add", "replace", "remove"]},
             "value": {},
         },
@@ -94,7 +96,12 @@ def _validate_schema(name, value, schema):
     if value is None:
         return
     try:
-        jsonschema.validate(value, schema)
+        jsonschema.validate(
+            value,
+            schema,
+            cls=jsonschema.Draft7Validator,
+            format_checker=jsonschema.draft7_format_checker,
+        )
     except jsonschema.exceptions.ValidationError as e:
         # The error message includes the whole schema which can be very
         # large and unhelpful, so truncate it to be brief and useful
@@ -116,8 +123,11 @@ def schema(schema):
 
     Returns:
         A validator function, which takes name and value arguments.
+
+    Raises:
+        jsonschema.SchemaError: if the schema is not valid.
     """
-    jsonschema.Draft4Validator.check_schema(schema)
+    jsonschema.Draft7Validator.check_schema(schema)
 
     return partial(_validate_schema, schema=schema)
 

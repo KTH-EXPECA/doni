@@ -1,30 +1,41 @@
-from flask import request, make_response
+from collections import defaultdict
+from typing import TYPE_CHECKING
+
 import jsonpatch
+from flask import make_response, request
 from oslo_log import log
 from oslo_utils import uuidutils
 
 from doni.common import exception
 from doni.objects import fields as doni_fields
 
-from typing import TYPE_CHECKING
 if TYPE_CHECKING:
+    from typing import Type
+
     from doni.common.context import RequestContext
     from doni.objects.base import DoniObject
-    from typing import Type
 
 
 LOG = log.getLogger(__name__)
 
-_JSONPATCH_EXCEPTIONS = (jsonpatch.JsonPatchConflict,
-                         jsonpatch.JsonPatchException,
-                         jsonpatch.JsonPointerException,
-                         KeyError,
-                         IndexError)
+_JSONPATCH_EXCEPTIONS = (
+    jsonpatch.JsonPatchConflict,
+    jsonpatch.JsonPatchException,
+    jsonpatch.JsonPointerException,
+    KeyError,
+    IndexError,
+)
 
 
-def object_to_dict(obj, include_created_at=True, include_updated_at=True,
-                   include_uuid=True, link_resource=None,
-                   link_resource_args=None, fields=None):
+def object_to_dict(
+    obj,
+    include_created_at=True,
+    include_updated_at=True,
+    include_uuid=True,
+    link_resource=None,
+    link_resource_args=None,
+    fields=None,
+):
     """Helper function to convert RPC objects to REST API dicts.
 
     Args:
@@ -51,11 +62,11 @@ def object_to_dict(obj, include_created_at=True, include_updated_at=True,
     all_fields = []
 
     if include_uuid:
-        all_fields.append('uuid')
+        all_fields.append("uuid")
     if include_created_at:
-        all_fields.append('created_at')
+        all_fields.append("created_at")
     if include_updated_at:
-        all_fields.append('updated_at')
+        all_fields.append("updated_at")
 
     if fields:
         all_fields.extend(fields)
@@ -84,9 +95,12 @@ def object_to_dict(obj, include_created_at=True, include_updated_at=True,
 
 
 def make_error_response(message=None, status_code=None):
-    return make_response({
-        "error": message,
-    }, status_code)
+    return make_response(
+        {
+            "error": message,
+        },
+        status_code,
+    )
 
 
 def apply_jsonpatch(state: dict, patch):
@@ -149,10 +163,15 @@ def apply_jsonpatch(state: dict, patch):
 
     # Prevent removal of root attributes.
     for p in patch:
-        if (p['op'] == 'add' and p['path'].count('/') == 1 and
-            p['path'].lstrip('/') not in doc):
-            msg = ('Adding a new attribute (%s) to the root of '
-                    'the resource is not allowed')
+        if (
+            p["op"] == "add"
+            and p["path"].count("/") == 1
+            and p["path"].lstrip("/") not in doc
+        ):
+            msg = (
+                "Adding a new attribute (%s) to the root of "
+                "the resource is not allowed"
+            )
             raise exception.PatchError(patch=p, reason=(msg % p["path"]))
 
     # Apply operations one at a time, to improve error reporting.
@@ -185,9 +204,9 @@ def apply_patch_updates(object: "DoniObject", updates: dict):
 def apply_patch_updates_to_list(
     objects: "list[DoniObject]",
     updates: "list[dict]",
-    obj_class: "Type[DoniObject]"=None,
-    context: "RequestContext"=None,
-    primary_key: str="uuid"
+    obj_class: "Type[DoniObject]" = None,
+    context: "RequestContext" = None,
+    primary_key: str = "uuid",
 ) -> "tuple[list[DoniObject],list[DoniObject],list[DoniObject]]":
     obj_map = {getattr(o, primary_key): o for o in objects}
     # Generate a default primary key if none exists; this will indicate that
@@ -231,8 +250,7 @@ def get_patch_values(patch, path) -> "list[any]":
     Returns:
         A list of values for the specified path in the patch.
     """
-    return [p['value'] for p in patch
-            if p['path'] == path and p['op'] != 'remove']
+    return [p["value"] for p in patch if p["path"] == path and p["op"] != "remove"]
 
 
 def is_path_removed(patch, path):
@@ -245,10 +263,11 @@ def is_path_removed(patch, path):
     Returns:
         True if path or subpath being removed, False otherwise.
     """
-    path = path.rstrip('/')
+    path = path.rstrip("/")
     for p in patch:
-        if ((p['path'] == path or p['path'].startswith(path + '/'))
-                and p['op'] == 'remove'):
+        if (p["path"] == path or p["path"].startswith(path + "/")) and p[
+            "op"
+        ] == "remove":
             return True
 
 
@@ -262,6 +281,66 @@ def is_path_updated(patch, path):
     Returns:
         True if path or subpath being patched, False otherwise.
     """
-    path = path.rstrip('/')
+    path = path.rstrip("/")
     for p in patch:
-        return p['path'] == path or p['path'].startswith(path + '/')
+        return p["path"] == path or p["path"].startswith(path + "/")
+
+
+def patch_validate(patch, allowed_fields=None):
+    """Validate that a patch list only modifies allowed fields.
+
+    Arg:
+        patch (list[dict]): HTTP PATCH request body.
+        allowed_fields (list[str]): List of fields which are allowed to be patched
+
+    Returns:
+        The list of fields which will be patched.
+
+    Raises:
+        exception.Invalid: if any patch changes a field not in ``allowed_fields``.
+    """
+    fields = set()
+    for p in patch:
+        path = p["path"].split("/")[1]
+        if path not in allowed_fields:
+            allowed = ", ".join(allowed_fields)
+            raise exception.Invalid(
+                f"Cannot patch {p['path']}. Only the following can be updated: {allowed}"
+            )
+        fields.add(path)
+    return fields
+
+
+def patch_validate_list(
+    patch, prefix, allowed_fields=[], validate_schema=None, validation_base=None
+):
+    by_entry = defaultdict(list)
+    for p in patch:
+        if not p["path"].startswith(prefix):
+            continue
+        p_item = p.copy()
+        item_path_parts = p["path"].replace(prefix, "").split("/")
+        p_item["path"] = "/" + "/".join(item_path_parts[2:])
+        by_entry[item_path_parts[1]].append(p_item)
+
+    for item_idx, patch in by_entry.items():
+        for p in patch:
+            full_path = f"{prefix}/{item_idx}{p['path']}"
+            if "value" in p and isinstance(p["value"], dict):
+                if validate_schema:
+                    validate_schema(full_path, p["value"])
+            else:
+                path = p["path"].split("/")[1]
+                if path and path not in allowed_fields:
+                    allowed = ", ".join(allowed_fields)
+                    raise exception.Invalid(
+                        f"Cannot patch {full_path}. Only the following can be updated: {allowed}"
+                    )
+        # Also check that, if patch were applied, it still validates.
+        if validate_schema:
+            doc = validation_base.copy() if validation_base else {}
+            try:
+                doc = jsonpatch.apply_patch(doc, jsonpatch.JsonPatch(patch))
+            except _JSONPATCH_EXCEPTIONS:
+                pass
+            validate_schema(f"{prefix}/{item_idx}", doc)

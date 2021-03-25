@@ -13,6 +13,7 @@ from doni.worker import WorkerField
 bp = Blueprint("hardware", __name__)
 
 SENSITIVE_MASK = "*" * 12
+
 DEFAULT_FIELDS = (
     "name",
     "project_id",
@@ -25,7 +26,7 @@ WORKER_TASK_DEFAULT_FIELDS = (
     "state_details",
 )
 
-HARDWARE_SCHEMA = {
+HARDWARE_ENROLL_SCHEMA = {
     "type": "object",
     "properties": {
         "name": args.STRING,
@@ -37,6 +38,29 @@ HARDWARE_SCHEMA = {
     },
     "required": ["name", "hardware_type"],
     "additionalProperties": False,
+}
+HARDWARE_UPDATE_ALLOWED_FIELDS = (
+    "name",
+    "hardware_type",
+    "properties",
+    "availability",
+)
+
+AVAILABILITY_WINDOW_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "start": args.optional(args.DATETIME),
+        "end": args.optional(args.DATETIME),
+    },
+    "required": ["start", "end"],
+}
+AVAILABILITY_WINDOW_UPDATE_ALLOWED_FIELDS = (
+    "start",
+    "end",
+)
+AVAILABILITY_WINDOW_VALID_BASE = {
+    "start": "2020-01-01T00:00:00Z",
+    "end": "2020-01-01T00:00:00Z",
 }
 
 
@@ -75,7 +99,7 @@ def hardware_validator():
         )
 
     schema = {
-        "definitions": {"hardware": HARDWARE_SCHEMA},
+        "definitions": {"hardware": HARDWARE_ENROLL_SCHEMA},
         "allOf": [
             # Check base hardware schema
             {"$ref": "#/definitions/hardware"},
@@ -223,7 +247,18 @@ def update(hardware_uuid=None, patch=None):
         "self": hardware,
     }
 
-    if api_utils.is_path_updated(patch, "/availability"):
+    api_utils.patch_validate(patch, allowed_fields=HARDWARE_UPDATE_ALLOWED_FIELDS)
+
+    is_updating_availability = api_utils.is_path_updated(patch, "/availability")
+
+    if is_updating_availability:
+        api_utils.patch_validate_list(
+            patch,
+            prefix="/availability",
+            allowed_fields=AVAILABILITY_WINDOW_UPDATE_ALLOWED_FIELDS,
+            validate_schema=args.schema(AVAILABILITY_WINDOW_SCHEMA),
+            validation_base=AVAILABILITY_WINDOW_VALID_BASE,
+        )
         # If updating availability windows, pull current values to compute the
         # delta from the patch.
         state["availability"] = AvailabilityWindow.list_for_hardware(ctx, hardware_uuid)
@@ -234,11 +269,15 @@ def update(hardware_uuid=None, patch=None):
         api_utils.apply_patch_updates(hardware, patched_state)
         hardware.save()
 
-        if "availability" in patched_state:
+        if is_updating_availability:
             to_add, to_update, to_remove = api_utils.apply_patch_updates_to_list(
-                state["availability"], patched_state["availability"]
+                state["availability"],
+                patched_state["availability"],
+                obj_class=AvailabilityWindow,
+                context=ctx,
             )
             for window in to_add:
+                window.hardware_uuid = hardware.uuid
                 window.create()
             for window in to_update:
                 window.save()
