@@ -44,7 +44,7 @@ class Hardware(models.SoftDeleteMixin, Base):
     __tablename__ = "hardware"
     __table_args__ = (
         schema.UniqueConstraint("uuid", name="uniq_hardware0uuid"),
-        schema.UniqueConstraint("name", name="uniq_hardware0name"),
+        schema.UniqueConstraint("name", "deleted", name="uniq_hardware0name0deleted"),
         table_args(),
     )
     id = Column(Integer, primary_key=True)
