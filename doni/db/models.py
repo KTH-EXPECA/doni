@@ -5,12 +5,13 @@ SQLAlchemy models for hardware data.
 from os import path
 from urllib import parse as urlparse
 
-from doni.conf import CONF
 from oslo_db import options as db_options
 from oslo_db.sqlalchemy import models
 from oslo_db.sqlalchemy import types as db_types
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, orm, schema
 from sqlalchemy.ext.declarative import declarative_base
+
+from doni.conf import CONF
 
 _DEFAULT_SQL_CONNECTION = "sqlite:///" + path.join("$state_path", "doni.sqlite")
 
@@ -70,7 +71,12 @@ class WorkerTask(models.SoftDeleteMixin, Base):
     )
     id = Column(Integer, primary_key=True)
     uuid = Column(String(36))
-    hardware_uuid = Column(String(36), ForeignKey("hardware.uuid", ondelete="cascade"))
+    hardware_uuid = Column(
+        String(36),
+        ForeignKey(
+            "hardware.uuid", ondelete="cascade", name="fk_hardware_uuid_worker_task"
+        ),
+    )
     worker_type = Column(String(64))
     state = Column(String(15))
     state_details = Column(db_types.JsonEncodedDict)
@@ -84,6 +90,9 @@ class AvailabilityWindow(Base):
     )
     id = Column(Integer, primary_key=True)
     uuid = Column(String(36))
-    hardware_uuid = Column(String(36), ForeignKey("hardware.uuid"))
+    hardware_uuid = Column(
+        String(36),
+        ForeignKey("hardware.uuid", name="fk_hardware_uuid_availability_window"),
+    )
     start = Column(DateTime(), nullable=True)
     end = Column(DateTime(), nullable=True)

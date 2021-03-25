@@ -16,12 +16,21 @@ depends_on = None
 
 
 def upgrade():
-    op.drop_constraint(None, "worker_task", type_="foreignkey")
+    op.drop_constraint("worker_task_ibfk_1", "worker_task", type_="foreignkey")
     op.create_foreign_key(
-        None, "worker_task", "hardware", ["hardware_uuid"], ["uuid"], ondelete="cascade"
+        "fk_hardware_uuid_worker_task",
+        "worker_task",
+        "hardware",
+        ["hardware_uuid"],
+        ["uuid"],
+        ondelete="cascade",
     )
 
 
 def downgrade():
-    op.drop_constraint(None, "worker_task", type_="foreignkey")
-    op.create_foreign_key(None, "worker_task", "hardware", ["hardware_uuid"], ["uuid"])
+    op.drop_constraint(
+        "fk_hardware_uuid_worker_task", "worker_task", type_="foreignkey"
+    )
+    op.create_foreign_key(
+        "worker_task_ibfk_1", "worker_task", "hardware", ["hardware_uuid"], ["uuid"]
+    )
