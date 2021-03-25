@@ -140,7 +140,7 @@ class IronicWorker(BaseWorker):
         }
 
         existing = _call_ironic(
-            context, f"/nodes/{hardware.uuid}", method="get", allowed_status_codes=[404]
+            context, f"/nodes/{hardware.uuid}", method="get", none_on_404=True
         )
 
         if not existing:
@@ -214,7 +214,7 @@ def _wait_for_provision_state(
         provision_state = node["provision_state"]
 
 
-def _call_ironic(context, path, method="get", json=None, allowed_status_codes=[]):
+def _call_ironic(context, path, method="get", json=None, none_on_404=False):
     try:
         ironic = _get_ironic_adapter()
         resp = ironic.request(
@@ -228,7 +228,9 @@ def _call_ironic(context, path, method="get", json=None, allowed_status_codes=[]
     except kaexception.ClientException as exc:
         raise IronicUnavailable(message=str(exc))
 
-    if resp.status_code >= 400 and resp.status_code not in allowed_status_codes:
+    if resp.status_code >= 400:
+        if resp.status_code == 404 and none_on_404:
+            return None
         try:
             error_message = resp.json()["error_message"]
         except Exception:
