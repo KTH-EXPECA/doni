@@ -1,20 +1,15 @@
+import time
 from functools import wraps
 from textwrap import shorten
-import time
+from typing import TYPE_CHECKING
 
 import jsonpatch
 from keystoneauth1 import exceptions as kaexception
 from oslo_log import log
 
-from doni.common import args
-from doni.common import exception
-from doni.common import keystone
+from doni.common import args, exception, keystone
 from doni.conf import auth as auth_conf
-from doni.worker import BaseWorker
-from doni.worker import WorkerField
-from doni.worker import WorkerResult
-
-from typing import TYPE_CHECKING
+from doni.worker import BaseWorker, WorkerField, WorkerResult
 
 if TYPE_CHECKING:
     from doni.common.context import RequestContext
@@ -24,7 +19,10 @@ if TYPE_CHECKING:
 LOG = log.getLogger(__name__)
 
 IRONIC_API_VERSION = "1"
-IRONIC_API_MICROVERSION = "1.65"
+# 1.51 provides a "description" field for the node, which we may want to use.
+# It is supported in Stein and later[1].
+# https://docs.openstack.org/ironic/latest/contributor/webapi-version-history.html#id13
+IRONIC_API_MICROVERSION = "1.51"
 PROVISION_STATE_TIMEOUT = 60  # Seconds to wait for provision_state changes
 _IRONIC_ADAPTER = None
 
