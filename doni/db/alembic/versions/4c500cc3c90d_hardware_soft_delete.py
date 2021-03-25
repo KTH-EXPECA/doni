@@ -7,6 +7,7 @@ Create Date: 2021-03-24 17:32:15.012500
 """
 import sqlalchemy as sa
 from alembic import op
+from oslo_db.sqlalchemy import types
 
 # revision identifiers, used by Alembic.
 revision = "4c500cc3c90d"
@@ -18,16 +19,12 @@ depends_on = None
 def upgrade():
     op.add_column(
         "hardware",
-        sa.Column(
-            "deleted", oslo_db.sqlalchemy.types.SoftDeleteInteger(), nullable=True
-        ),
+        sa.Column("deleted", types.SoftDeleteInteger(), nullable=True),
     )
     op.add_column("hardware", sa.Column("deleted_at", sa.DateTime(), nullable=True))
     op.add_column(
         "worker_task",
-        sa.Column(
-            "deleted", oslo_db.sqlalchemy.types.SoftDeleteInteger(), nullable=True
-        ),
+        sa.Column("deleted", types.SoftDeleteInteger(), nullable=True),
     )
     op.add_column("worker_task", sa.Column("deleted_at", sa.DateTime(), nullable=True))
 
