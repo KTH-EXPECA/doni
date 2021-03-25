@@ -1,25 +1,20 @@
+import itertools
 from collections import defaultdict
 from re import A
-import itertools
+from typing import TYPE_CHECKING
 
 import futurist
-from futurist import periodics
-from futurist import rejection
-from futurist import waiters
+from futurist import periodics, rejection, waiters
 from oslo_log import log
 
 from doni.common import context as doni_context
-from doni.common import driver_factory
-from doni.common import exception
+from doni.common import driver_factory, exception
 from doni.conf import CONF
 from doni.db import api as db_api
 from doni.objects.availability_window import AvailabilityWindow
 from doni.objects.hardware import Hardware
 from doni.objects.worker_task import WorkerTask
-from doni.worker import WorkerResult
-from doni.worker import WorkerState
-
-from typing import TYPE_CHECKING
+from doni.worker import WorkerResult, WorkerState
 
 if TYPE_CHECKING:
     from futurist import Future
@@ -142,8 +137,9 @@ class WorkerManager(object):
             failures = [f.exception() for f in done if f.exception()]
             LOG.info(
                 (
-                    f"Processed batch {i+1}: successfully processed "
-                    f"{len(done) - len(failures)} tasks, {len(failures)} failed."
+                    f"Processed batch {i+1}: processed "
+                    f"{len(done) - len(failures)} tasks, "
+                    f"{len(failures)} could not be processed."
                 )
             )
             if failures:
@@ -202,14 +198,7 @@ class WorkerManager(object):
                 LOG.info(
                     f"{task.worker_type}: finished processing {task.hardware_uuid}"
                 )
-                task.state = WorkerState.STEADY
-                # Clear intermediate state detail information
-                for detail in ALL_DETAILS:
-                    if detail in state_details:
-                        del state_details[detail]
-                if process_result.payload:
-                    state_details.update(process_result.payload)
-                task.state_details = state_details
+                self._move_to_steady_state(task, state_details, process_result.payload)
             else:
                 LOG.warning(
                     (
@@ -219,12 +208,21 @@ class WorkerManager(object):
                         "interpreted as success result."
                     )
                 )
-                task.state = WorkerState.STEADY
-                if process_result:
-                    state_details[FALLBACK_PAYLOAD_DETAIL] = process_result
-                    task.state_details = state_details
+                self._move_to_steady_state(
+                    task, state_details, {FALLBACK_PAYLOAD_DETAIL: process_result}
+                )
 
         task.save()
+
+    def _move_to_steady_state(self, task, state_details, payload=None):
+        task.state = WorkerState.STEADY
+        # Clear intermediate state detail information
+        for detail in ALL_DETAILS:
+            if detail in state_details:
+                del state_details[detail]
+        if payload:
+            state_details.update(payload)
+        task.state_details = state_details
 
     def _collect_periodic_tasks(self, workers, admin_context):
         """Collect driver-specific periodic tasks.
