@@ -1,3 +1,5 @@
+from flask import Blueprint, request
+
 from doni.api import utils as api_utils
 from doni.api.hooks import route
 from doni.common import args, driver_factory
@@ -7,11 +9,10 @@ from doni.objects.availability_window import AvailabilityWindow
 from doni.objects.hardware import Hardware
 from doni.objects.worker_task import WorkerTask
 from doni.worker import WorkerField
-from flask import Blueprint, request
 
 bp = Blueprint("hardware", __name__)
 
-
+SENSITIVE_MASK = "*" * 12
 DEFAULT_FIELDS = (
     "name",
     "project_id",
@@ -95,16 +96,20 @@ def hardware_serializer(with_private_fields=False):
             Defaults to False.
 
     Returns:
-        A function that takes a Hardware object as its sole argument and returns
+        A function that takes a Hardware object as its first argument and returns
             a JSON-safe dictionary value representing the serialized object.
+            The function additionally takes the following keyword arguments:
+
+            worker_tasks (list[WorkerTask]): A list of worker tasks to include
+                on the JSON response under a "workers" top-level key.
     """
     globally_enabled_workers = driver_factory.worker_types()
     globally_enabled_hardware_types = driver_factory.hardware_types()
 
     def _mask_sensitive(value):
-        return "*" * 12
+        return SENSITIVE_MASK
 
-    def _serialize(hardware: "Hardware"):
+    def _serialize(hardware: "Hardware", worker_tasks: "list[WorkerTask]" = None):
         hardware_json = api_utils.object_to_dict(hardware, fields=DEFAULT_FIELDS)
         properties = hardware_json["properties"].copy()
 
@@ -129,6 +134,19 @@ def hardware_serializer(with_private_fields=False):
                 )
 
         hardware_json["properties"] = filtered_properties
+
+        if worker_tasks is not None:
+            hardware_json["workers"] = [
+                api_utils.object_to_dict(
+                    wt,
+                    include_created_at=False,
+                    include_updated_at=False,
+                    include_uuid=False,
+                    fields=WORKER_TASK_DEFAULT_FIELDS,
+                )
+                for wt in worker_tasks
+            ]
+
         return hardware_json
 
     return _serialize
@@ -160,18 +178,8 @@ def get_one(hardware_uuid=None):
     hardware = Hardware.get_by_uuid(ctx, hardware_uuid)
     authorize("hardware:get", ctx, hardware)
     serialize = hardware_serializer(with_private_fields=True)
-    response = serialize(hardware)
-    response["workers"] = [
-        api_utils.object_to_dict(
-            wt,
-            include_created_at=False,
-            include_updated_at=False,
-            include_uuid=False,
-            fields=WORKER_TASK_DEFAULT_FIELDS,
-        )
-        for wt in WorkerTask.list_for_hardware(ctx, hardware_uuid)
-    ]
-    return response
+    worker_tasks = WorkerTask.list_for_hardware(ctx, hardware_uuid)
+    return serialize(hardware, worker_tasks=worker_tasks)
 
 
 @route("/<hardware_uuid>/", methods=["DELETE"], blueprint=bp)
@@ -197,8 +205,8 @@ def create(hardware_params=None):
     authorize("hardware:create", ctx)
     serialize = hardware_serializer(with_private_fields=True)
     hardware.create()
-
-    return serialize(hardware), 201
+    worker_tasks = WorkerTask.list_for_hardware(ctx, hardware.uuid)
+    return serialize(hardware, worker_tasks=worker_tasks), 201
 
 
 @route("/<hardware_uuid>/", methods=["PATCH"], json_body="patch", blueprint=bp)
@@ -237,4 +245,5 @@ def update(hardware_uuid=None, patch=None):
             for window in to_remove:
                 window.destroy()
 
-    return serialize(hardware)
+    worker_tasks = WorkerTask.list_for_hardware(ctx, hardware.uuid)
+    return serialize(hardware, worker_tasks=worker_tasks)

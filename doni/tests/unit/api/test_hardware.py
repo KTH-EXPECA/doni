@@ -1,10 +1,10 @@
 import json
 import re
 
+import pytest
 from flask.testing import FlaskClient
 from oslo_policy.policy import PolicyNotAuthorized
 from oslo_utils import uuidutils
-import pytest
 
 from doni.common.context import RequestContext
 from doni.objects.hardware import Hardware
@@ -32,20 +32,35 @@ class HardwareMatching(Hardware):
         )
 
 
-def _assert_hardware_json_ok(hw_json, hw):
-    assert hw_json["uuid"] == hw["uuid"]
-    assert hw_json["name"] == hw["name"]
-    assert hw_json["project_id"] == hw["project_id"]
-
+def _assert_hardware_json_ok(hw_json, expected):
     # Don't return internal IDs
     assert "id" not in hw_json
+    # But we should get UUIDs
+    assert "uuid" in hw_json
+    # Don't strictly validate dates, but check they're present
+    assert hw_json["created_at"] is not None
 
-    # Return all fields
-    properties = hw_json["properties"]
-    assert properties["private-field"] == hw["properties"]["private-field"]
-    # Ensure sensitive fields masked
-    assert properties["public-and-sensitive-field"] == "************"
-    assert properties["private-and-sensitive-field"] == "************"
+    for ignored_key in ["created_at", "updated_at", "deleted", "deleted_at"]:
+        expected.pop(ignored_key, None)
+
+    # Check that keys validate against expected values
+    for key in expected.keys():
+        assert hw_json[key] == expected[key]
+
+
+def _with_masked_sensitive_fields(expected):
+    expected_with_masked = expected.copy()
+    for field in ["private-and-sensitive-field", "public-and-sensitive-field"]:
+        if field in expected_with_masked["properties"]:
+            expected_with_masked["properties"][field] = "************"
+    return expected_with_masked
+
+
+def _assert_hardware_has_workers(hw_json):
+    workers = hw_json["workers"]
+    assert len(workers) == 1
+    assert workers[0]["worker_type"] == utils.FAKE_WORKER_TYPE
+    assert isinstance(workers[0]["state_details"], dict)
 
 
 def test_get_all_hardware(
@@ -56,7 +71,7 @@ def test_get_all_hardware(
     res = client.get("/v1/hardware/", headers=user_auth_headers)
     assert res.status_code == 200
     assert len(res.json["hardware"]) == 1
-    _assert_hardware_json_ok(res.json["hardware"][0], hw)
+    _assert_hardware_json_ok(res.json["hardware"][0], _with_masked_sensitive_fields(hw))
     mock_authorize.assert_called_once_with("hardware:get", AnyContext())
 
 
@@ -77,12 +92,8 @@ def test_get_one_hardware(
     hw = database.add_hardware()
     res = client.get(f"/v1/hardware/{hw['uuid']}/", headers=user_auth_headers)
     assert res.status_code == 200
-    _assert_hardware_json_ok(res.json, hw)
-    # Test nested workers object(s) -- these are only returned on this endpoint.
-    workers = res.json["workers"]
-    assert len(workers) == 1
-    assert workers[0]["worker_type"] == utils.FAKE_WORKER_TYPE
-    assert isinstance(workers[0]["state_details"], dict)
+    _assert_hardware_json_ok(res.json, _with_masked_sensitive_fields(hw))
+    _assert_hardware_has_workers(res.json)
     mock_authorize.assert_called_once_with(
         "hardware:get", AnyContext(), HardwareMatching(uuid=hw["uuid"])
     )
@@ -105,6 +116,10 @@ def test_enroll_hardware(mocker, user_auth_headers, client: "FlaskClient"):
         "hardware_type": utils.FAKE_HARDWARE_TYPE,
         "properties": {
             "default_required_field": "fake-default_required_field",
+            "private-field": "fake-private_field",
+            "public-field": "fake-public_field",
+            "private-and-sensitive-field": "fake-private_and_sensitive_field",
+            "public-and-sensitive-field": "fake-public_and_sensitive_field",
         },
     }
     res = client.post(
@@ -114,6 +129,8 @@ def test_enroll_hardware(mocker, user_auth_headers, client: "FlaskClient"):
         data=json.dumps(enroll_payload),
     )
     assert res.status_code == 201
+    _assert_hardware_json_ok(res.json, _with_masked_sensitive_fields(enroll_payload))
+    _assert_hardware_has_workers(res.json)
     mock_authorize.assert_called_once_with("hardware:create", AnyContext())
 
 
@@ -211,8 +228,8 @@ def test_update_hardware(
     mock_authorize.assert_called_once_with(
         "hardware:update", AnyContext(), HardwareMatching(uuid=FAKE_UUID)
     )
-    assert res.json["uuid"] == FAKE_UUID
-    assert res.json["name"] == "new-fake-name"
+    _assert_hardware_json_ok(res.json, {"uuid": FAKE_UUID, "name": "new-fake-name"})
+    _assert_hardware_has_workers(res.json)
 
 
 def test_destroy_hardware(
