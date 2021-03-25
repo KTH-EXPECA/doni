@@ -229,7 +229,11 @@ def _call_ironic(context, path, method="get", json=None, allowed_status_codes=[]
         raise IronicUnavailable(message=str(exc))
 
     if resp.status_code >= 400 and resp.status_code not in allowed_status_codes:
-        raise IronicAPIError(code=resp.status_code, text=shorten(resp.text, width=50))
+        try:
+            error_message = resp.json()["error_message"]
+        except Exception:
+            error_message = shorten(resp.text, width=50)
+        raise IronicAPIError(code=resp.status_code, text=error_message)
 
     try:
         # Treat empty response bodies as None

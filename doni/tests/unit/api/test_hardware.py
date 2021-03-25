@@ -9,7 +9,9 @@ from oslo_utils import uuidutils
 from doni.common.context import RequestContext
 from doni.objects.availability_window import AvailabilityWindow
 from doni.objects.hardware import Hardware
+from doni.objects.worker_task import WorkerTask
 from doni.tests.unit import utils
+from doni.worker import WorkerState
 
 
 class AnyContext(RequestContext):
@@ -195,6 +197,17 @@ FAKE_UUID = uuidutils.generate_uuid()
             },
             id="enroll",
         ),
+        pytest.param(
+            f"/v1/hardware/{FAKE_UUID}/",
+            {
+                "method": "PATCH",
+                "content_type": "application/json",
+                "data": json.dumps([]),
+            },
+            id="update",
+        ),
+        pytest.param(f"/v1/hardware/{FAKE_UUID}/", {"method": "DELETE"}, id="destroy"),
+        pytest.param(f"/v1/hardware/{FAKE_UUID}/sync/", {"method": "POST"}, id="sync"),
     ],
 )
 def test_policy_disallow(
@@ -358,4 +371,45 @@ def test_destroy_hardware(
     assert res.status_code == 204
     mock_authorize.assert_called_once_with(
         "hardware:delete", AnyContext(), HardwareMatching(uuid=FAKE_UUID)
+    )
+
+
+def test_sync(
+    mocker,
+    admin_context,
+    user_auth_headers,
+    client: "FlaskClient",
+    database: "utils.DBFixtures",
+):
+    database.add_hardware(uuid=FAKE_UUID)
+    task = WorkerTask.list_for_hardware(admin_context, FAKE_UUID)[0]
+    # Simulate successful state transition
+    task.state = WorkerState.IN_PROGRESS
+    task.state = WorkerState.STEADY
+    task.save()
+    mock_authorize = mocker.patch("doni.api.hardware.authorize")
+    res = client.post(f"/v1/hardware/{FAKE_UUID}/sync/", headers=user_auth_headers)
+    assert res.status_code == 204
+    mock_authorize.assert_called_once_with(
+        "hardware:update", AnyContext(), HardwareMatching(uuid=FAKE_UUID)
+    )
+    assert WorkerTask.list_for_hardware(admin_context, FAKE_UUID)[0].state == WorkerState.PENDING
+
+
+def test_sync_handles_in_progress(
+    mocker,
+    admin_context,
+    user_auth_headers,
+    client: "FlaskClient",
+    database: "utils.DBFixtures",
+):
+    database.add_hardware(uuid=FAKE_UUID)
+    task = WorkerTask.list_for_hardware(admin_context, FAKE_UUID)[0]
+    task.state = WorkerState.IN_PROGRESS
+    task.save()
+    mock_authorize = mocker.patch("doni.api.hardware.authorize")
+    res = client.post(f"/v1/hardware/{FAKE_UUID}/sync/", headers=user_auth_headers)
+    assert res.status_code == 204
+    mock_authorize.assert_called_once_with(
+        "hardware:update", AnyContext(), HardwareMatching(uuid=FAKE_UUID)
     )

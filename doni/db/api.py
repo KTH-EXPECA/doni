@@ -93,10 +93,13 @@ class Connection(object):
         hardware = models.Hardware()
         hardware.update(values)
 
-        # Create one worker for each worker type we have.
+        # Create one worker for each worker type we have enabled.
         hardware_type = driver_factory.get_hardware_type(hardware.hardware_type)
+        enabled_worker_types = driver_factory.worker_types()
         worker_tasks = []
         for worker_type in hardware_type.enabled_workers:
+            if worker_type not in enabled_worker_types:
+                continue
             task = models.WorkerTask()
             task.update(
                 {
@@ -239,13 +242,23 @@ class Connection(object):
     def get_worker_tasks_in_state(
         self, state: "WorkerState"
     ) -> "list[models.WorkerTask]":
-        query = model_query(models.WorkerTask).filter_by(state=state)
+        enabled_worker_types = driver_factory.worker_types().keys()
+        query = (
+            model_query(models.WorkerTask)
+            .filter(models.WorkerTask.state.is_(state))
+            .filter(models.WorkerTask.worker_type.in_(enabled_worker_types))
+        )
         return query.all()
 
     def get_worker_tasks_for_hardware(
         self, hardware_uuid: str
     ) -> "list[models.WorkerTask]":
-        query = model_query(models.WorkerTask).filter_by(hardware_uuid=hardware_uuid)
+        enabled_worker_types = driver_factory.worker_types().keys()
+        query = (
+            model_query(models.WorkerTask)
+            .filter(models.WorkerTask.hardware_uuid.is_(hardware_uuid))
+            .filter(models.WorkerTask.worker_type.in_(enabled_worker_types))
+        )
         # TODO: how to communicate that hardware doesn't exist?
         return query.all()
 

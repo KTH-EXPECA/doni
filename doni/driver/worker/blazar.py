@@ -1,6 +1,6 @@
-from doni.worker import BaseWorker
-
 from typing import TYPE_CHECKING
+
+from doni.worker import BaseWorker
 
 if TYPE_CHECKING:
     from doni.common.context import RequestContext

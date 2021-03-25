@@ -8,7 +8,7 @@ from doni.objects import transaction
 from doni.objects.availability_window import AvailabilityWindow
 from doni.objects.hardware import Hardware
 from doni.objects.worker_task import WorkerTask
-from doni.worker import WorkerField
+from doni.worker import WorkerField, WorkerState
 
 bp = Blueprint("hardware", __name__)
 
@@ -286,3 +286,18 @@ def update(hardware_uuid=None, patch=None):
 
     worker_tasks = WorkerTask.list_for_hardware(ctx, hardware.uuid)
     return serialize(hardware, worker_tasks=worker_tasks)
+
+
+@route("/<hardware_uuid>/sync/", methods=["POST"], blueprint=bp)
+@args.validate(hardware_uuid=args.uuid)
+def sync(hardware_uuid=None):
+    ctx = request.context
+    hardware = Hardware.get_by_uuid(ctx, hardware_uuid)
+    authorize("hardware:update", ctx, hardware)
+    with transaction():
+        for task in WorkerTask.list_for_hardware(ctx, hardware_uuid):
+            # Take care not to interrupt tasks in progress
+            if not (task.is_pending or task.is_in_progress):
+                task.state = WorkerState.PENDING
+                task.save()
+    return None
