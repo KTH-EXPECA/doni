@@ -245,7 +245,7 @@ class Connection(object):
         enabled_worker_types = driver_factory.worker_types().keys()
         query = (
             model_query(models.WorkerTask)
-            .filter(models.WorkerTask.state.is_(state))
+            .filter(models.WorkerTask.state == state)
             .filter(models.WorkerTask.worker_type.in_(enabled_worker_types))
         )
         return query.all()
@@ -256,7 +256,7 @@ class Connection(object):
         enabled_worker_types = driver_factory.worker_types().keys()
         query = (
             model_query(models.WorkerTask)
-            .filter(models.WorkerTask.hardware_uuid.is_(hardware_uuid))
+            .filter(models.WorkerTask.hardware_uuid == hardware_uuid)
             .filter(models.WorkerTask.worker_type.in_(enabled_worker_types))
         )
         # TODO: how to communicate that hardware doesn't exist?
