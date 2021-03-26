@@ -241,11 +241,9 @@ def _wait_for_provision_state(
 ):
     _call_ironic(
         context,
-        f"/nodes/{node_uuid}",
-        method="patch",
-        json=[
-            {"op": "replace", "path": "/provision_state", "value": target_state},
-        ],
+        f"/nodes/{node_uuid}/states/provision",
+        method="put",
+        json={"target": target_state},
     )
     start_time = time.perf_counter()
     provision_state = None

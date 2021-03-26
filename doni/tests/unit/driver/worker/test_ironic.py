@@ -115,16 +115,16 @@ def test_ironic_create_node(
                 "ipmi_port": None,
             }
             return utils.MockResponse(201, {"created_at": "fake-created_at"})
-        elif method == "patch" and path == f"/nodes/{TEST_HARDWARE_UUID}":
+        elif (
+            method == "put" and path == f"/nodes/{TEST_HARDWARE_UUID}/states/provision"
+        ):
             nonlocal patch_node_count
             patch_node_count += 1
             if patch_node_count == 1:
                 provision_state = "manageable"
             elif patch_node_count == 2:
                 provision_state = "available"
-            assert json == [
-                {"op": "replace", "path": "/provision_state", "value": provision_state}
-            ]
+            assert json == {"target": provision_state}
             return utils.MockResponse(200, {})
         raise NotImplementedError("Unexpected request signature")
 
@@ -151,7 +151,6 @@ def test_ironic_update_node(
 ):
     """Test that existing nodes are patched from hardware properties."""
     get_node_count = 0
-    patch_node_count = 0
 
     def _fake_ironic_for_update(path, method=None, json=None, **kwargs):
         if method == "get" and path == f"/nodes/{TEST_HARDWARE_UUID}":
@@ -179,22 +178,19 @@ def test_ironic_update_node(
                 },
             )
         elif method == "patch" and path == f"/nodes/{TEST_HARDWARE_UUID}":
-            nonlocal patch_node_count
-            patch_node_count += 1
-            if patch_node_count == 1:
-                # Validate patch for node properties
-                assert json == [
-                    {
-                        "op": "replace",
-                        "path": "/driver_info/ipmi_address",
-                        "value": "fake-management_address",
-                    }
-                ]
-            else:
-                # Validate patch for setting node to available
-                assert json == [
-                    {"op": "replace", "path": "/provision_state", "value": "available"}
-                ]
+            # Validate patch for node properties
+            assert json == [
+                {
+                    "op": "replace",
+                    "path": "/driver_info/ipmi_address",
+                    "value": "fake-management_address",
+                }
+            ]
+            return utils.MockResponse(200)
+        elif (
+            method == "put" and path == f"/nodes/{TEST_HARDWARE_UUID}/states/provision"
+        ):
+            assert json == {"target": "available"}
             return utils.MockResponse(200)
         raise NotImplementedError("Unexpected request signature")
 
@@ -259,10 +255,10 @@ def test_ironic_provision_state_timeout(
                     "provision_state": "available",
                 },
             )
-        elif method == "patch" and path == f"/nodes/{TEST_HARDWARE_UUID}":
-            assert json == [
-                {"op": "replace", "path": "/provision_state", "value": "manageable"}
-            ]
+        elif (
+            method == "put" and path == f"/nodes/{TEST_HARDWARE_UUID}/states/provision"
+        ):
+            assert json == {"target": "manageable"}
             return utils.MockResponse(200)
         raise NotImplementedError("Unexpected request signature")
 
