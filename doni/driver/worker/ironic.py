@@ -26,6 +26,13 @@ IRONIC_API_MICROVERSION = "1.51"
 PROVISION_STATE_TIMEOUT = 60  # Seconds to wait for provision_state changes
 _IRONIC_ADAPTER = None
 
+# Ironic's provision state API takes target arguments that
+# are annoyingly different than the state the node ultimately winds up in.
+IRONIC_STATE_TARGETS = {
+    "manageable": "manage",
+    "available": "provide",
+}
+
 
 def _get_ironic_adapter():
     global _IRONIC_ADAPTER
@@ -243,7 +250,7 @@ def _wait_for_provision_state(
         context,
         f"/nodes/{node_uuid}/states/provision",
         method="put",
-        json={"target": target_state},
+        json={"target": IRONIC_STATE_TARGETS[target_state]},
     )
     start_time = time.perf_counter()
     provision_state = None

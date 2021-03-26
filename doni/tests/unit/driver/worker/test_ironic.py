@@ -121,13 +121,15 @@ def test_ironic_create_node(
             nonlocal patch_node_count
             patch_node_count += 1
             if patch_node_count == 1:
-                provision_state = "manageable"
+                provision_state = "manage"
             elif patch_node_count == 2:
-                provision_state = "available"
+                provision_state = "provide"
             assert json == {"target": provision_state}
             return utils.MockResponse(200, {})
         raise NotImplementedError("Unexpected request signature")
 
+    # 'sleep' is used to wait for provision state changes
+    mocker.patch("time.sleep")
     fake_ironic = get_fake_ironic(mocker, _fake_ironic_for_create)
 
     result = ironic_worker.process(admin_context, get_fake_hardware(database))
@@ -190,7 +192,7 @@ def test_ironic_update_node(
         elif (
             method == "put" and path == f"/nodes/{TEST_HARDWARE_UUID}/states/provision"
         ):
-            assert json == {"target": "available"}
+            assert json == {"target": "provide"}
             return utils.MockResponse(200)
         raise NotImplementedError("Unexpected request signature")
 
@@ -258,7 +260,7 @@ def test_ironic_provision_state_timeout(
         elif (
             method == "put" and path == f"/nodes/{TEST_HARDWARE_UUID}/states/provision"
         ):
-            assert json == {"target": "manageable"}
+            assert json == {"target": "manage"}
             return utils.MockResponse(200)
         raise NotImplementedError("Unexpected request signature")
 
