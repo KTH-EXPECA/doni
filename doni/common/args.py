@@ -39,7 +39,7 @@ STRING = {"type": "string"}
 DATETIME = {"type": "string", "format": "date-time"}
 PORT_RANGE = {"type": "integer", "minimum": 1, "maximum": 65536}
 HOST_OR_IP = {
-    "oneOf": [
+    "anyOf": [
         {"type": "string", "format": "hostname"},
         {"type": "string", "format": "ipv4"},
         {"type": "string", "format": "ipv6"},
@@ -88,8 +88,8 @@ def optional(schema):
     }
 
 
-def array(schema):
-    return {"type": "array", "items": schema}
+def array(schema, min_items=0):
+    return {"type": "array", "items": schema, "minItems": min_items}
 
 
 def _validate_schema(name, value, schema):

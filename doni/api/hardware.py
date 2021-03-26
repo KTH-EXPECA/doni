@@ -36,7 +36,7 @@ HARDWARE_ENROLL_SCHEMA = {
             "additionalProperties": True,
         },
     },
-    "required": ["name", "hardware_type"],
+    "required": ["name", "hardware_type", "properties"],
     "additionalProperties": False,
 }
 HARDWARE_UPDATE_ALLOWED_FIELDS = (
