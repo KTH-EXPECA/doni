@@ -1,17 +1,19 @@
 import time
-
-from keystoneauth1 import loading as ks_loading
-from oslo_utils import uuidutils
-import pytest
+from typing import TYPE_CHECKING
 from unittest import mock
 
-from doni.driver.worker.ironic import IronicNodeProvisionStateTimeout, IronicWorker
-from doni.driver.worker.ironic import PROVISION_STATE_TIMEOUT
+import pytest
+from keystoneauth1 import loading as ks_loading
+from oslo_utils import uuidutils
+
+from doni.driver.worker.ironic import (
+    PROVISION_STATE_TIMEOUT,
+    IronicNodeProvisionStateTimeout,
+    IronicWorker,
+)
 from doni.objects.hardware import Hardware
 from doni.tests.unit import utils
 from doni.worker import WorkerResult
-
-from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from doni.common.context import RequestContext
@@ -69,6 +71,7 @@ def get_fake_ironic(mocker, request_fn):
 def get_fake_hardware(database: "utils.DBFixtures"):
     db_hw = database.add_hardware(
         uuid=TEST_HARDWARE_UUID,
+        name="fake-name",
         hardware_type="baremetal",
         properties={
             "baremetal_driver": "fake-driver",
@@ -87,12 +90,22 @@ def test_ironic_create_node(
     database: "utils.DBFixtures",
 ):
     """Test that new nodes are created if not already existing."""
+    get_node_count = 0
+    patch_node_count = 0
 
     def _fake_ironic_for_create(path, method=None, json=None, **kwargs):
         if method == "get" and path == f"/nodes/{TEST_HARDWARE_UUID}":
-            return utils.MockResponse(404)
+            nonlocal get_node_count
+            get_node_count += 1
+            if get_node_count == 1:
+                return utils.MockResponse(404)
+            elif get_node_count == 2:
+                return utils.MockResponse(200, {"provision_state": "manageable"})
+            elif get_node_count == 3:
+                return utils.MockResponse(200, {"provision_state": "available"})
         elif method == "post" and path == f"/nodes":
             assert json["uuid"] == TEST_HARDWARE_UUID
+            assert json["name"] == "fake-name"
             assert json["driver"] == "fake-driver"
             assert json["driver_info"] == {
                 "ipmi_address": "fake-management_address",
@@ -101,6 +114,17 @@ def test_ironic_create_node(
                 "ipmi_terminal_port": None,
             }
             return utils.MockResponse(201, {"created_at": "fake-created_at"})
+        elif method == "patch" and path == f"/nodes/{TEST_HARDWARE_UUID}":
+            nonlocal patch_node_count
+            patch_node_count += 1
+            if patch_node_count == 1:
+                provision_state = "manageable"
+            elif patch_node_count == 2:
+                provision_state = "available"
+            assert json == [
+                {"op": "replace", "path": "/provision_state", "value": provision_state}
+            ]
+            return utils.MockResponse(200, {})
         raise NotImplementedError("Unexpected request signature")
 
     fake_ironic = get_fake_ironic(mocker, _fake_ironic_for_create)
@@ -109,7 +133,13 @@ def test_ironic_create_node(
 
     assert isinstance(result, WorkerResult.Success)
     assert result.payload == {"created_at": "fake-created_at"}
-    assert fake_ironic.call_count == 2
+    # call 1 = check that node does not exist
+    # call 2 = create the node
+    # call 3 = patch the node to 'manageable' state
+    # call 4 = get the node to see if state changed
+    # call 5 = patch the node to 'available' state
+    # call 6 = get the node to see if state changed
+    assert fake_ironic.call_count == 6
 
 
 def test_ironic_update_node(
@@ -134,13 +164,14 @@ def test_ironic_update_node(
                 200,
                 {
                     "uuid": TEST_HARDWARE_UUID,
-                    "name": "ironic-name",
+                    "name": "fake-name",
+                    "created_at": "fake-created_at",
                     "maintenance": False,
                     "provision_state": provision_state,
                     "driver": "fake-driver",
                     "driver_info": {
                         # Ironic-provided value should be replaced
-                        "ipmi_address": "ironic-ipmi_address",
+                        "ipmi_address": "REPLACE-ipmi_address",
                         "ipmi_username": "fake-ipmi_username",
                         "ipmi_password": "fake-ipmi_password",
                         "ipmi_terminal_port": 30000,
@@ -174,7 +205,7 @@ def test_ironic_update_node(
     result = ironic_worker.process(admin_context, get_fake_hardware(database))
 
     assert isinstance(result, WorkerResult.Success)
-    assert result.payload is None
+    assert result.payload == {"created_at": "fake-created_at"}
     # call 1 = get the node
     # call 2 = patch the node's properties
     # call 3 = patch the node back to 'available' state

@@ -130,6 +130,7 @@ class IronicWorker(BaseWorker):
         hw_props = hardware.properties
         desired_state = {
             "uuid": hardware.uuid,
+            "name": hardware.name,
             "driver": hw_props.get("baremetal_driver"),
             "driver_info": {
                 "ipmi_address": hw_props.get("management_address"),
@@ -145,10 +146,13 @@ class IronicWorker(BaseWorker):
 
         if not existing:
             node = _call_ironic(context, "/nodes", method="post", json=desired_state)
-            # This 'created_at' isn't really used for anything but may provide comfort
-            return WorkerResult.Success({"created_at": node["created_at"]})
+            # Move from enroll -> manageable (Ironic will perform verification)
+            _wait_for_provision_state(context, hardware.uuid, target_state="manageable")
+            # Move from manageable -> available
+            _wait_for_provision_state(context, hardware.uuid, target_state="available")
+            return WorkerResult.Success(_success_payload(node))
 
-        if existing["maintenance"]:
+        if existing.get("maintenance"):
             # For operator sanity, avoid mutating any details about the node
             # if it is maintenance mode. It is likely this will fail anyways
             # if the node is in maintenance.
@@ -170,7 +174,7 @@ class IronicWorker(BaseWorker):
             _wait_for_provision_state(context, hardware.uuid, target_state="manageable")
 
         existing_state = {
-            key: existing.get(key) for key in ["driver", "driver_info", "uuid"]
+            key: existing.get(key) for key in ["name", "driver", "driver_info", "uuid"]
         }
         # Copy unknown or empty keys from existing state to avoid overwriting w/ patch
         # NOTE: this means we cannot null out Ironic properties! But this is
@@ -190,7 +194,14 @@ class IronicWorker(BaseWorker):
         # Put back into available state
         _wait_for_provision_state(context, hardware.uuid, target_state="available")
 
-        return WorkerResult.Success()
+        return WorkerResult.Success(_success_payload(existing))
+
+
+def _success_payload(node):
+    # This 'created_at' isn't really used for anything but may provide comfort
+    return {
+        "created_at": node.get("created_at"),
+    }
 
 
 def _wait_for_provision_state(
