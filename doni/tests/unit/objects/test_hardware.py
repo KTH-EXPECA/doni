@@ -11,10 +11,11 @@
 #    under the License.
 
 import pytest
+from oslo_utils import timeutils
+
 from doni.common import exception
 from doni.objects.hardware import Hardware
 from doni.tests.unit import utils
-from oslo_utils import timeutils
 
 
 @pytest.fixture()
@@ -37,6 +38,8 @@ def test_create_hardware(database: "utils.DBFixtures"):
 
     assert fake_hardware["name"] == hardware.name
     assert fake_hardware["project_id"] == hardware.project_id
+    # Test that defaults, if not overridden, are set on the object on save.
+    assert hardware.properties["default-field"] == "default-field-value"
 
     # Cleanup so that other tests in this module don't see this hardware item
     database.db.destroy_hardware(hardware.uuid)

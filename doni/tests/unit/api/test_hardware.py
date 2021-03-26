@@ -123,6 +123,7 @@ def test_enroll_hardware(mocker, user_auth_headers, client: "FlaskClient"):
             "public-field": "fake-public_field",
             "private-and-sensitive-field": "fake-private_and_sensitive_field",
             "public-and-sensitive-field": "fake-public_and_sensitive_field",
+            "default-field": "fake-default_field",
         },
     }
     res = client.post(

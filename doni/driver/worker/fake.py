@@ -15,6 +15,7 @@ class FakeWorker(BaseWorker):
         WorkerField("private-and-sensitive-field", private=True, sensitive=True),
         WorkerField("public-field", private=False),
         WorkerField("public-and-sensitive-field", private=False, sensitive=True),
+        WorkerField("default-field", private=True, default="default-field-value"),
     ]
 
     def process(
