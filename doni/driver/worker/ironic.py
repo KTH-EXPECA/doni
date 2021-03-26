@@ -107,6 +107,25 @@ class IronicWorker(BaseWorker):
                 "if the ``baremetal_driver`` is 'ipmi'."
             ),
         ),
+        WorkerField(
+            "ipmi_port",
+            schema=args.PORT_RANGE,
+            private=True,
+            description=(
+                "The remote IPMI RMCP port. If not provided, this defaults to "
+                "the default IPMI port of 623."
+            ),
+        ),
+        WorkerField(
+            "ipmi_terminal_port",
+            schema=args.PORT_RANGE,
+            private=True,
+            description=(
+                "A local port to use to provide a remote console for provisioners "
+                "of the Ironic node. Each node should have its own free unique "
+                "port on the host running Ironic."
+            ),
+        ),
     ]
 
     opts = []
@@ -136,6 +155,7 @@ class IronicWorker(BaseWorker):
                 "ipmi_address": hw_props.get("management_address"),
                 "ipmi_username": hw_props.get("ipmi_username"),
                 "ipmi_password": hw_props.get("ipmi_password"),
+                "ipmi_port": hw_props.get("ipmi_port"),
                 "ipmi_terminal_port": hw_props.get("impi_terminal_port"),
             },
         }
@@ -176,17 +196,12 @@ class IronicWorker(BaseWorker):
         existing_state = {
             key: existing.get(key) for key in ["name", "driver", "driver_info", "uuid"]
         }
-        # Copy unknown or empty keys from existing state to avoid overwriting w/ patch
-        # NOTE: this means we cannot null out Ironic properties! But this is
-        # probably the safest thing to do for now.
-        desired_state["driver_info"].update(
-            {
-                key: existing_state["driver_info"][key]
-                for key in existing_state["driver_info"].keys()
-                if desired_state["driver_info"].get(key) is None
-            }
+        _normalize_driver_info(
+            existing_state["driver_info"], desired_state["driver_info"]
         )
+
         patch = jsonpatch.make_patch(existing_state, desired_state)
+
         _call_ironic(
             context, f"/nodes/{hardware.uuid}", method="patch", json=list(patch)
         )
@@ -202,6 +217,23 @@ def _success_payload(node):
     return {
         "created_at": node.get("created_at"),
     }
+
+
+def _normalize_driver_info(existing_driver_info, desired_driver_info):
+    # Copy unknown or empty keys from existing state to avoid overwriting w/ patch
+    # NOTE: this means we cannot null out Ironic properties! But this is
+    # probably the safest thing to do for now.
+    for key in existing_driver_info.keys():
+        desired_driver_info.setdefault(key, existing_driver_info[key])
+    # Remove keys from each if they evaluate to None; this prevents a desired
+    # 'None' from being sent to Ironic if it already has no value for that key.
+    for key in list(desired_driver_info.keys()):
+        if (
+            existing_driver_info.get(key) is None
+            and desired_driver_info.get(key) is None
+        ):
+            existing_driver_info.pop(key, None)
+            desired_driver_info.pop(key, None)
 
 
 def _wait_for_provision_state(

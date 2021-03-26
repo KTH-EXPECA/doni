@@ -112,6 +112,7 @@ def test_ironic_create_node(
                 "ipmi_username": "fake-ipmi_username",
                 "ipmi_password": "fake-ipmi_password",
                 "ipmi_terminal_port": None,
+                "ipmi_port": None,
             }
             return utils.MockResponse(201, {"created_at": "fake-created_at"})
         elif method == "patch" and path == f"/nodes/{TEST_HARDWARE_UUID}":
@@ -174,7 +175,6 @@ def test_ironic_update_node(
                         "ipmi_address": "REPLACE-ipmi_address",
                         "ipmi_username": "fake-ipmi_username",
                         "ipmi_password": "fake-ipmi_password",
-                        "ipmi_terminal_port": 30000,
                     },
                 },
             )
