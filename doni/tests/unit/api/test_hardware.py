@@ -149,9 +149,11 @@ def test_enroll_hardware(mocker, user_auth_headers, client: "FlaskClient"):
             id="invalid_properties",
         ),
         pytest.param(
-            {
-                "name": "fake-name",
-            },
+            {"name": "fake-name", "hardware_type": utils.FAKE_HARDWARE_TYPE},
+            id="no_properties",
+        ),
+        pytest.param(
+            {"name": "fake-name"},
             id="no_hardware_type",
         ),
         pytest.param(
@@ -192,7 +194,13 @@ FAKE_UUID = uuidutils.generate_uuid()
                 "method": "POST",
                 "content_type": "application/json",
                 "data": json.dumps(
-                    {"name": "fake-name", "hardware_type": utils.FAKE_HARDWARE_TYPE}
+                    {
+                        "name": "fake-name",
+                        "hardware_type": utils.FAKE_HARDWARE_TYPE,
+                        "properties": {
+                            "default_required_field": "fake-default_required_field"
+                        },
+                    }
                 ),
             },
             id="enroll",
@@ -393,7 +401,10 @@ def test_sync(
     mock_authorize.assert_called_once_with(
         "hardware:update", AnyContext(), HardwareMatching(uuid=FAKE_UUID)
     )
-    assert WorkerTask.list_for_hardware(admin_context, FAKE_UUID)[0].state == WorkerState.PENDING
+    assert (
+        WorkerTask.list_for_hardware(admin_context, FAKE_UUID)[0].state
+        == WorkerState.PENDING
+    )
 
 
 def test_sync_handles_in_progress(
