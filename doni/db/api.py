@@ -87,29 +87,33 @@ class Connection(object):
 
     @oslo_db_api.retry_on_deadlock
     def create_hardware(self, values: dict) -> "models.Hardware":
-        if "uuid" not in values:
-            values["uuid"] = uuidutils.generate_uuid()
-
-        hardware = models.Hardware()
-        hardware.update(values)
+        values.setdefault("uuid", uuidutils.generate_uuid())
+        hardware_uuid = values["uuid"]
 
         # Create one worker for each worker type we have enabled.
-        hardware_type = driver_factory.get_hardware_type(hardware.hardware_type)
+        hardware_type = driver_factory.get_hardware_type(values["hardware_type"])
         enabled_worker_types = driver_factory.worker_types()
         worker_tasks = []
         for worker_type in hardware_type.enabled_workers:
             if worker_type not in enabled_worker_types:
                 continue
+            # Add in default fields
+            for field in enabled_worker_types[worker_type].fields:
+                if field.default and field.name not in values:
+                    values["properties"].setdefault(field.name, field.default)
             task = models.WorkerTask()
             task.update(
                 {
                     "uuid": uuidutils.generate_uuid(),
-                    "hardware_uuid": hardware.uuid,
+                    "hardware_uuid": hardware_uuid,
                     "worker_type": worker_type,
                     "state": WorkerState.PENDING,
                 }
             )
             worker_tasks.append(task)
+
+        hardware = models.Hardware()
+        hardware.update(values)
 
         with _session_for_write() as session:
             try:

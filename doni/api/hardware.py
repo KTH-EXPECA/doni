@@ -149,7 +149,7 @@ def hardware_serializer(with_private_fields=False):
         filtered_properties = {}
         for field in worker_fields:
             if with_private_fields or not field.private:
-                value = properties.get(field.name, field.default)
+                value = properties.get(field.name)
                 if value is None:
                     # Don't serialize 'None'
                     continue
