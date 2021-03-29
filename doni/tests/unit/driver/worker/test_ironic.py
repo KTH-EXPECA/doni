@@ -75,6 +75,7 @@ def get_fake_hardware(database: "utils.DBFixtures"):
         hardware_type="baremetal",
         properties={
             "baremetal_driver": "fake-driver",
+            "baremetal_resource_class": "fake-resource_class",
             "management_address": "fake-management_address",
             "ipmi_username": "fake-ipmi_username",
             "ipmi_password": "fake-ipmi_password",
@@ -114,6 +115,7 @@ def test_ironic_create_node(
                 "ipmi_terminal_port": None,
                 "ipmi_port": None,
             }
+            assert json["resource_class"] == "fake-resource_class"
             return utils.MockResponse(201, {"created_at": "fake-created_at"})
         elif (
             method == "put" and path == f"/nodes/{TEST_HARDWARE_UUID}/states/provision"
@@ -177,6 +179,7 @@ def test_ironic_update_node(
                         "ipmi_username": "fake-ipmi_username",
                         "ipmi_password": "fake-ipmi_password",
                     },
+                    "resource_class": "fake-resource_class",
                 },
             )
         elif method == "patch" and path == f"/nodes/{TEST_HARDWARE_UUID}":

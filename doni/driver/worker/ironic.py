@@ -96,6 +96,19 @@ class IronicWorker(BaseWorker):
             ),
         ),
         WorkerField(
+            "baremetal_resource_class",
+            schema=args.STRING,
+            default="baremetal",
+            private=True,
+            description=(
+                "The Ironic node resource class, which is used to map instance "
+                "launch requests onto specific nodes via different Nova flavors. "
+                "See https://docs.openstack.org/ironic/latest/install/configure-nova-flavors.html "
+                "for more information. Defaults to 'baremetal', a generic resource "
+                "class."
+            ),
+        ),
+        WorkerField(
             "ipmi_username",
             schema=args.STRING,
             private=True,
@@ -165,6 +178,7 @@ class IronicWorker(BaseWorker):
                 "ipmi_port": hw_props.get("ipmi_port"),
                 "ipmi_terminal_port": hw_props.get("impi_terminal_port"),
             },
+            "resource_class": hw_props.get("baremetal_resource_class"),
         }
 
         existing = _call_ironic(
@@ -200,9 +214,7 @@ class IronicWorker(BaseWorker):
         if existing["provision_state"] != "manageable":
             _wait_for_provision_state(context, hardware.uuid, target_state="manageable")
 
-        existing_state = {
-            key: existing.get(key) for key in ["name", "driver", "driver_info", "uuid"]
-        }
+        existing_state = {key: existing.get(key) for key in desired_state.keys()}
         _normalize_driver_info(
             existing_state["driver_info"], desired_state["driver_info"]
         )
