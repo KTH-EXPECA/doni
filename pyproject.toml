@@ -46,7 +46,7 @@ pydocstyle = "^6.0.0"
 [tool.poetry.scripts]
 doni-api = "doni.cmd.api:main"
 doni-dbsync = "doni.cmd.dbsync:main"
-doni-import = "doni.cmd.import:main"
+doni-import = "doni.cmd.importer:main"
 doni-rootwrap = "oslo_rootwrap.cmd:main"
 doni-worker = "doni.cmd.worker:main"
 
