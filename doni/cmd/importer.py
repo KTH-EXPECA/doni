@@ -39,6 +39,7 @@ def import_existing():
         hardware = Hardware(
             uuid=uuid,
             name=exist_hw["name"],
+            project_id=ctx.project_id,
             hardware_type=exist_hw["hardware_type"],
             properties=exist_hw["properties"],
         )
