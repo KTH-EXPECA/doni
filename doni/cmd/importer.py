@@ -62,7 +62,7 @@ def main():
                     "into the system database."
                 ),
             ),
-            cfg.BoolOpt(
+            cfg.StrOpt(
                 "project-id",
                 dest="project_id",
                 help=(
