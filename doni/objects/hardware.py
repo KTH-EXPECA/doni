@@ -3,10 +3,10 @@ from typing import TYPE_CHECKING
 from doni.db import api as db_api
 from doni.objects import base
 from doni.objects import fields as object_fields
-from oslo_versionedobjects import fields as ovo_fields
 
 if TYPE_CHECKING:
     from doni.common.context import RequestContext
+    from doni.worker import WorkerState
 
 
 @base.DoniObjectRegistry.register
@@ -25,7 +25,11 @@ class Hardware(base.DoniObject):
         "properties": object_fields.FlexibleDictField(default={}),
     }
 
-    def create(self, context: "RequestContext" = None):
+    def create(
+        self,
+        context: "RequestContext" = None,
+        initial_worker_state: "WorkerState" = None,
+    ):
         """Create a Hardware record in the DB.
 
         Args:
@@ -36,7 +40,9 @@ class Hardware(base.DoniObject):
             HardwareAlreadyExists: if a hardware with the same UUID exists.
         """
         values = self.obj_get_changes()
-        db_hardware = self.dbapi.create_hardware(values)
+        db_hardware = self.dbapi.create_hardware(
+            values, initial_worker_state=initial_worker_state
+        )
         self._from_db_object(self._context, self, db_hardware)
 
     def save(self, context: "RequestContext" = None):

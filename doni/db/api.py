@@ -86,7 +86,12 @@ class Connection(object):
         pass
 
     @oslo_db_api.retry_on_deadlock
-    def create_hardware(self, values: dict) -> "models.Hardware":
+    def create_hardware(
+        self, values: dict, initial_worker_state=None
+    ) -> "models.Hardware":
+        if initial_worker_state is not None:
+            assert getattr(WorkerState, initial_worker_state, None) is not None
+
         values.setdefault("uuid", uuidutils.generate_uuid())
         hardware_uuid = values["uuid"]
 
@@ -107,7 +112,7 @@ class Connection(object):
                     "uuid": uuidutils.generate_uuid(),
                     "hardware_uuid": hardware_uuid,
                     "worker_type": worker_type,
-                    "state": WorkerState.PENDING,
+                    "state": initial_worker_state or WorkerState.PENDING,
                 }
             )
             worker_tasks.append(task)

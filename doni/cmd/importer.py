@@ -11,6 +11,7 @@ from doni.common import context as doni_context
 from doni.common import driver_factory, service
 from doni.conf import CONF
 from doni.objects.hardware import Hardware
+from doni.worker import WorkerState
 
 LOG = log.getLogger(__name__)
 
@@ -43,7 +44,7 @@ def import_existing():
         )
         print(f"Registering {hardware}")
         if not CONF.dry_run:
-            hardware.create(ctx)
+            hardware.create(ctx, initial_worker_state=WorkerState.STEADY)
 
 
 def main():
