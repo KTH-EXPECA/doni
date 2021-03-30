@@ -1,14 +1,14 @@
 import abc
+from typing import TYPE_CHECKING
 
 from doni.common import args
 
-from typing import TYPE_CHECKING
-
 if TYPE_CHECKING:
+    from oslo_config.cfg import Opt
+
     from doni.common.context import RequestContext
     from doni.objects.availability_window import AvailabilityWindow
     from doni.objects.hardware import Hardware
-    from oslo_config.cfg import Opt
 
 
 class WorkerState(object):
@@ -86,6 +86,21 @@ class BaseWorker(abc.ABC):
             "properties": {field.name: field.schema or {} for field in self.fields},
             "required": [field.name for field in self.fields if field.required],
         }
+
+    def import_existing(self, context: "RequestContext"):
+        """Get all known external state managed by this worker.
+
+        This is an optional capability of a worker and supports an 'import' flow
+        where existing resources/state outside of the doni can be brought under
+        doni's management.
+
+        The expected return type is a list of objects with a "uuid" and a
+        "properties" key, representing the UUID of the hardware the state
+        corresponds to (or None if one could not be reasonably determined and
+        should be auto-assigned) and a set of properties that should be imported
+        for that hardware item.
+        """
+        pass
 
 
 class WorkerField(object):

@@ -230,6 +230,39 @@ class IronicWorker(BaseWorker):
 
         return WorkerResult.Success(_success_payload(existing))
 
+    def import_existing(self, context):
+        existing_nodes = []
+        for node in _call_ironic(context, "/nodes?detail=True")["nodes"]:
+            uuid = node["uuid"]
+            driver_info = node["driver_info"]
+
+            if driver_info.get("ipmi_password", "").startswith("***"):
+                LOG.warning(
+                    (
+                        f"Node {uuid} has masked IPMI password. Please "
+                        "reconfigure Ironic to allow showing secrets for admin "
+                        "requests: https://docs.openstack.org/ironic/latest/admin/security.html"
+                    )
+                )
+                continue
+
+            existing_nodes.append(
+                {
+                    "uuid": uuid,
+                    "name": node["name"],
+                    "properties": {
+                        "baremetal_driver": node["driver"],
+                        "baremetal_resource_class": node["resource_class"],
+                        "management_address": driver_info["ipmi_address"],
+                        "ipmi_username": driver_info["ipmi_username"],
+                        "ipmi_password": driver_info["ipmi_password"],
+                        "ipmi_port": driver_info.get("ipmi_port"),
+                        "ipmi_terminal_port": driver_info.get("ipmi_terminal_port"),
+                    },
+                }
+            )
+        return existing_nodes
+
 
 def _success_payload(node):
     # This 'created_at' isn't really used for anything but may provide comfort
