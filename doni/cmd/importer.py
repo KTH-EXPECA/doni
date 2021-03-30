@@ -18,6 +18,8 @@ LOG = log.getLogger(__name__)
 
 def import_existing():
     ctx = doni_context.get_admin_context()
+    project_id = CONF.project_id or ctx.project_id
+
     existing = defaultdict(dict)
     for hwt_name, hwt in driver_factory.hardware_types().items():
         for wrk_name, wrk in driver_factory.worker_types().items():
@@ -39,7 +41,7 @@ def import_existing():
         hardware = Hardware(
             uuid=uuid,
             name=exist_hw["name"],
-            project_id=ctx.project_id,
+            project_id=project_id,
             hardware_type=exist_hw["hardware_type"],
             properties=exist_hw["properties"],
         )
@@ -58,6 +60,13 @@ def main():
                 help=(
                     "Print out hardwares that would be imported without importing them "
                     "into the system database."
+                ),
+            ),
+            cfg.BoolOpt(
+                "project-id",
+                dest="project_id",
+                help=(
+                    "The ID of the project that will own the imported hardware resources."
                 ),
             ),
         ],
