@@ -186,11 +186,7 @@ class IronicWorker(BaseWorker):
         )
 
         if not existing:
-            node = _call_ironic(context, "/nodes", method="post", json=desired_state)
-            # Move from enroll -> manageable (Ironic will perform verification)
-            _wait_for_provision_state(context, hardware.uuid, target_state="manageable")
-            # Move from manageable -> available
-            _wait_for_provision_state(context, hardware.uuid, target_state="available")
+            node = _do_node_create(context, desired_state)
             return WorkerResult.Success(_success_payload(node))
 
         if existing.get("maintenance"):
@@ -208,27 +204,8 @@ class IronicWorker(BaseWorker):
                 }
             )
 
-        # Nodes must be in 'manageable' state to change driver
-        # TODO: we can tell by what kind of diff we need whether this is
-        # actually required.
-        if existing["provision_state"] != "manageable":
-            _wait_for_provision_state(context, hardware.uuid, target_state="manageable")
-
-        existing_state = {key: existing.get(key) for key in desired_state.keys()}
-        _normalize_driver_info(
-            existing_state["driver_info"], desired_state["driver_info"]
-        )
-
-        patch = jsonpatch.make_patch(existing_state, desired_state)
-
-        _call_ironic(
-            context, f"/nodes/{hardware.uuid}", method="patch", json=list(patch)
-        )
-
-        # Put back into available state
-        _wait_for_provision_state(context, hardware.uuid, target_state="available")
-
-        return WorkerResult.Success(_success_payload(existing))
+        node = _do_node_update(context, existing, desired_state)
+        return WorkerResult.Success(_success_payload(node))
 
     def import_existing(self, context):
         existing_nodes = []
@@ -262,6 +239,38 @@ class IronicWorker(BaseWorker):
                 }
             )
         return existing_nodes
+
+
+def _do_node_create(context, desired_state) -> dict:
+    node = _call_ironic(context, "/nodes", method="post", json=desired_state)
+    # Move from enroll -> manageable (Ironic will perform verification)
+    _wait_for_provision_state(context, node["uuid"], target_state="manageable")
+    # Move from manageable -> available
+    _wait_for_provision_state(context, node["uuid"], target_state="available")
+    return node
+
+
+def _do_node_update(context, ironic_node, desired_state) -> dict:
+    node_uuid = ironic_node["uuid"]
+
+    # Nodes must be in 'manageable' state to change driver
+    # TODO: we can tell by what kind of diff we need whether this is
+    # actually required.
+    if ironic_node["provision_state"] != "manageable":
+        _wait_for_provision_state(context, node_uuid, target_state="manageable")
+
+    existing_state = {key: ironic_node.get(key) for key in desired_state.keys()}
+    _normalize_driver_info(existing_state["driver_info"], desired_state["driver_info"])
+    patch = jsonpatch.make_patch(existing_state, desired_state)
+
+    updated = _call_ironic(
+        context, f"/nodes/{node_uuid}", method="patch", json=list(patch)
+    )
+
+    # Put back into available state
+    _wait_for_provision_state(context, node_uuid, target_state="available")
+
+    return updated
 
 
 def _success_payload(node):

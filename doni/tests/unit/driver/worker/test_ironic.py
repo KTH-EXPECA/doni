@@ -116,7 +116,9 @@ def test_ironic_create_node(
                 "ipmi_port": None,
             }
             assert json["resource_class"] == "fake-resource_class"
-            return utils.MockResponse(201, {"created_at": "fake-created_at"})
+            return utils.MockResponse(
+                201, {"uuid": TEST_HARDWARE_UUID, "created_at": "fake-created_at"}
+            )
         elif (
             method == "put" and path == f"/nodes/{TEST_HARDWARE_UUID}/states/provision"
         ):
@@ -191,7 +193,13 @@ def test_ironic_update_node(
                     "value": "fake-management_address",
                 }
             ]
-            return utils.MockResponse(200)
+            return utils.MockResponse(
+                200,
+                {
+                    "uuid": TEST_HARDWARE_UUID,
+                    "created_at": "fake-created_at",
+                },
+            )
         elif (
             method == "put" and path == f"/nodes/{TEST_HARDWARE_UUID}/states/provision"
         ):
