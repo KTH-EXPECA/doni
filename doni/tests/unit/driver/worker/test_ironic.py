@@ -130,6 +130,10 @@ def test_ironic_create_node(
                 provision_state = "provide"
             assert json == {"target": provision_state}
             return utils.MockResponse(200, {})
+        elif (
+            method == "get" and path == f"/ports?node={TEST_HARDWARE_UUID}&detail=True"
+        ):
+            return utils.MockResponse(200, [])
         raise NotImplementedError("Unexpected request signature")
 
     # 'sleep' is used to wait for provision state changes
@@ -146,7 +150,8 @@ def test_ironic_create_node(
     # call 4 = get the node to see if state changed
     # call 5 = patch the node to 'available' state
     # call 6 = get the node to see if state changed
-    assert fake_ironic.call_count == 6
+    # call 7 = list ports for update
+    assert fake_ironic.call_count == 7
 
 
 def test_ironic_update_node(
@@ -205,6 +210,10 @@ def test_ironic_update_node(
         ):
             assert json == {"target": "provide"}
             return utils.MockResponse(200)
+        elif (
+            method == "get" and path == f"/ports?node={TEST_HARDWARE_UUID}&detail=True"
+        ):
+            return utils.MockResponse(200, [])
         raise NotImplementedError("Unexpected request signature")
 
     # 'sleep' is used to wait for provision state changes
@@ -219,7 +228,8 @@ def test_ironic_update_node(
     # call 2 = patch the node's properties
     # call 3 = patch the node back to 'available' state
     # call 4 = get the node to see if state changed
-    assert fake_ironic.call_count == 4
+    # call 5 = list ports for update
+    assert fake_ironic.call_count == 5
 
 
 def test_ironic_update_defer_on_maintenance(

@@ -180,14 +180,16 @@ class IronicWorker(BaseWorker):
             },
             "resource_class": hw_props.get("baremetal_resource_class"),
         }
+        desired_interfaces = hw_props.get("interfaces", [])
 
         existing = _call_ironic(
             context, f"/nodes/{hardware.uuid}", method="get", none_on_404=True
         )
 
         if not existing:
-            node = _do_node_create(context, desired_state)
-            return WorkerResult.Success(_success_payload(node))
+            payload = _do_node_create(context, desired_state)
+            _do_port_updates(context, hardware.uuid, desired_interfaces)
+            return WorkerResult.Success(payload)
 
         if existing.get("maintenance"):
             # For operator sanity, avoid mutating any details about the node
@@ -204,8 +206,9 @@ class IronicWorker(BaseWorker):
                 }
             )
 
-        node = _do_node_update(context, existing, desired_state)
-        return WorkerResult.Success(_success_payload(node))
+        payload = _do_node_update(context, existing, desired_state)
+        _do_port_updates(context, hardware.uuid, desired_interfaces)
+        return WorkerResult.Success(payload)
 
     def import_existing(self, context):
         existing_nodes = []
@@ -247,7 +250,8 @@ def _do_node_create(context, desired_state) -> dict:
     _wait_for_provision_state(context, node["uuid"], target_state="manageable")
     # Move from manageable -> available
     _wait_for_provision_state(context, node["uuid"], target_state="available")
-    return node
+
+    return _success_payload(node)
 
 
 def _do_node_update(context, ironic_node, desired_state) -> dict:
@@ -270,7 +274,45 @@ def _do_node_update(context, ironic_node, desired_state) -> dict:
     # Put back into available state
     _wait_for_provision_state(context, node_uuid, target_state="available")
 
-    return updated
+    return _success_payload(updated)
+
+
+def _do_port_updates(context, ironic_uuid, interfaces) -> dict:
+    ports = _call_ironic(context, f"/ports?node={ironic_uuid}&detail=True")
+    ports_by_mac = {p["address"]: p for p in ports}
+    ifaces_by_mac = {i["mac_address"]: i for i in interfaces}
+    existing = set(ports_by_mac.keys())
+    desired = set(ifaces_by_mac.keys())
+
+    def _desired_port_state(iface):
+        return {
+            "local_link_connection": {
+                "switch_id": iface.get("switch_id"),
+                "port_id": iface.get("switch_port_id"),
+                "switch_info": iface.get("switch_info"),
+            },
+        }
+
+    for iface_to_add in desired - existing:
+        iface = ifaces_by_mac[iface_to_add]
+        port_create = {"node_uuid": ironic_uuid, "address": iface["mac_address"]}
+        port_create.update(_desired_port_state(iface))
+        port = _call_ironic(context, "/ports", method="post", json=port_create)
+        LOG.info(f"Created port {port['uuid']} for node {ironic_uuid}")
+
+    for iface_to_update in desired & existing:
+        port = ports_by_mac[iface_to_update]
+        patch = jsonpatch.make_patch(
+            {k: port[k] for k in ["local_link_connection"]},
+            _desired_port_state(ifaces_by_mac[iface_to_update]),
+        )
+        _call_ironic(context, f"/ports/{port['uuid']}", method="patch", json=patch)
+        LOG.info(f"Updated port {port['uuid']} for node {ironic_uuid}")
+
+    for iface_to_remove in existing - desired:
+        port_uuid = ports_by_mac[iface_to_remove]["uuid"]
+        _call_ironic(context, f"/ports/{port_uuid}", method="delete")
+        LOG.info(f"Deleted port {port_uuid} for node {ironic_uuid}")
 
 
 def _success_payload(node):
