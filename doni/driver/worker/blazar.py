@@ -371,8 +371,8 @@ class BlazarPhysicalHostWorker(BaseWorker):
         could not be reasonably determined and should be auto-assigned) and a set of
         properties that should be imported for that hardware item.
         """
-        existing_hosts = _call_blazar(context, "/os-hosts")["hosts"]
-        for host in existing_hosts:
+        existing_hosts = []
+        for host in _call_blazar(context, "/os-hosts")["hosts"]:
             existing_hosts.append(
                 {
                     "uuid": host["hypervisor_hostname"],
