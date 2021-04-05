@@ -226,6 +226,19 @@ class IronicWorker(BaseWorker):
                 )
                 continue
 
+            interfaces = []
+            for port in _call_ironic(context, f"/ports?node={uuid}&detail=True"):
+                port_llc = port["local_link_connection"]
+                interfaces.append(
+                    {
+                        "name": port["extra"].get("name", port["uuid"]),
+                        "mac_address": port["address"],
+                        "switch_id": port_llc.get("switch_id"),
+                        "switch_port_id": port_llc.get("port_id"),
+                        "switch_info": port_llc.get("switch_info"),
+                    }
+                )
+
             existing_nodes.append(
                 {
                     "uuid": uuid,
@@ -234,6 +247,7 @@ class IronicWorker(BaseWorker):
                         "baremetal_driver": node["driver"],
                         "baremetal_resource_class": node["resource_class"],
                         "management_address": driver_info["ipmi_address"],
+                        "interfaces": interfaces,
                         "ipmi_username": driver_info["ipmi_username"],
                         "ipmi_password": driver_info["ipmi_password"],
                         "ipmi_port": driver_info.get("ipmi_port"),
@@ -286,6 +300,9 @@ def _do_port_updates(context, ironic_uuid, interfaces) -> dict:
 
     def _desired_port_state(iface):
         return {
+            "extra": {
+                "name": iface.get("name"),
+            },
             "local_link_connection": {
                 "switch_id": iface.get("switch_id"),
                 "port_id": iface.get("switch_port_id"),
@@ -295,15 +312,15 @@ def _do_port_updates(context, ironic_uuid, interfaces) -> dict:
 
     for iface_to_add in desired - existing:
         iface = ifaces_by_mac[iface_to_add]
-        port_create = {"node_uuid": ironic_uuid, "address": iface["mac_address"]}
-        port_create.update(_desired_port_state(iface))
-        port = _call_ironic(context, "/ports", method="post", json=port_create)
+        body = {"node_uuid": ironic_uuid, "address": iface["mac_address"]}
+        body.update(_desired_port_state(iface))
+        port = _call_ironic(context, "/ports", method="post", json=body)
         LOG.info(f"Created port {port['uuid']} for node {ironic_uuid}")
 
     for iface_to_update in desired & existing:
         port = ports_by_mac[iface_to_update]
         patch = jsonpatch.make_patch(
-            {k: port[k] for k in ["local_link_connection"]},
+            {k: port[k] for k in ["extra", "local_link_connection"]},
             _desired_port_state(ifaces_by_mac[iface_to_update]),
         )
         _call_ironic(context, f"/ports/{port['uuid']}", method="patch", json=patch)
