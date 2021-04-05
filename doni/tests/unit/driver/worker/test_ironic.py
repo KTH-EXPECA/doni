@@ -79,6 +79,9 @@ def get_fake_hardware(database: "utils.DBFixtures"):
             "management_address": "fake-management_address",
             "ipmi_username": "fake-ipmi_username",
             "ipmi_password": "fake-ipmi_password",
+            "interfaces": [
+                {"name": "fake-iface1_name", "mac_address": "00:00:00:00:00:00"}
+            ],
         },
     )
     return Hardware(**db_hw)
@@ -133,7 +136,16 @@ def test_ironic_create_node(
         elif (
             method == "get" and path == f"/ports?node={TEST_HARDWARE_UUID}&detail=True"
         ):
-            return utils.MockResponse(200, [])
+            return utils.MockResponse(200, {"ports": []})
+        elif method == "post" and path == "/ports":
+            assert json["extra"] == {"name": "fake-iface1_name"}
+            assert json["address"] == "00:00:00:00:00:00"
+            assert json["local_link_connection"] == {
+                "switch_id": None,
+                "port_id": None,
+                "switch_info": None,
+            }
+            return utils.MockResponse(200, {"uuid": "fake-port_uuid"})
         raise NotImplementedError("Unexpected request signature")
 
     # 'sleep' is used to wait for provision state changes
@@ -151,7 +163,8 @@ def test_ironic_create_node(
     # call 5 = patch the node to 'available' state
     # call 6 = get the node to see if state changed
     # call 7 = list ports for update
-    assert fake_ironic.call_count == 7
+    # call 8 = add port
+    assert fake_ironic.call_count == 8
 
 
 def test_ironic_update_node(
@@ -213,7 +226,19 @@ def test_ironic_update_node(
         elif (
             method == "get" and path == f"/ports?node={TEST_HARDWARE_UUID}&detail=True"
         ):
-            return utils.MockResponse(200, [])
+            return utils.MockResponse(
+                200,
+                {
+                    "ports": [
+                        {
+                            "uuid": "fake-port_uuid",
+                            "address": "00:00:00:00:00:00",
+                            "extra": {"name": "fake-iface1_name"},
+                            "local_link_connection": {},
+                        }
+                    ]
+                },
+            )
         raise NotImplementedError("Unexpected request signature")
 
     # 'sleep' is used to wait for provision state changes

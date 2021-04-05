@@ -227,7 +227,9 @@ class IronicWorker(BaseWorker):
                 continue
 
             interfaces = []
-            for port in _call_ironic(context, f"/ports?node={uuid}&detail=True"):
+            for port in _call_ironic(context, f"/ports?node={uuid}&detail=True")[
+                "ports"
+            ]:
                 port_llc = port["local_link_connection"]
                 interfaces.append(
                     {
@@ -278,7 +280,7 @@ def _do_node_update(context, ironic_node, desired_state) -> dict:
         _wait_for_provision_state(context, node_uuid, target_state="manageable")
 
     existing_state = {key: ironic_node.get(key) for key in desired_state.keys()}
-    _normalize_driver_info(existing_state["driver_info"], desired_state["driver_info"])
+    _normalize_for_patch(existing_state["driver_info"], desired_state["driver_info"])
     patch = jsonpatch.make_patch(existing_state, desired_state)
 
     updated = _call_ironic(
@@ -292,7 +294,7 @@ def _do_node_update(context, ironic_node, desired_state) -> dict:
 
 
 def _do_port_updates(context, ironic_uuid, interfaces) -> dict:
-    ports = _call_ironic(context, f"/ports?node={ironic_uuid}&detail=True")
+    ports = _call_ironic(context, f"/ports?node={ironic_uuid}&detail=True")["ports"]
     ports_by_mac = {p["address"]: p for p in ports}
     ifaces_by_mac = {i["mac_address"]: i for i in interfaces}
     existing = set(ports_by_mac.keys())
@@ -319,11 +321,19 @@ def _do_port_updates(context, ironic_uuid, interfaces) -> dict:
 
     for iface_to_update in desired & existing:
         port = ports_by_mac[iface_to_update]
-        patch = jsonpatch.make_patch(
-            {k: port[k] for k in ["extra", "local_link_connection"]},
-            _desired_port_state(ifaces_by_mac[iface_to_update]),
+        existing_state = {k: port[k] for k in ["extra", "local_link_connection"]}
+        desired_state = _desired_port_state(ifaces_by_mac[iface_to_update])
+        _normalize_for_patch(existing_state["extra"], desired_state["extra"])
+        _normalize_for_patch(
+            existing_state["local_link_connection"],
+            desired_state["local_link_connection"],
         )
-        _call_ironic(context, f"/ports/{port['uuid']}", method="patch", json=patch)
+        patch = jsonpatch.make_patch(existing_state, desired_state)
+        if not patch:
+            continue
+        _call_ironic(
+            context, f"/ports/{port['uuid']}", method="patch", json=list(patch)
+        )
         LOG.info(f"Updated port {port['uuid']} for node {ironic_uuid}")
 
     for iface_to_remove in existing - desired:
@@ -339,21 +349,18 @@ def _success_payload(node):
     }
 
 
-def _normalize_driver_info(existing_driver_info, desired_driver_info):
+def _normalize_for_patch(existing, desired):
     # Copy unknown or empty keys from existing state to avoid overwriting w/ patch
     # NOTE: this means we cannot null out Ironic properties! But this is
     # probably the safest thing to do for now.
-    for key in existing_driver_info.keys():
-        desired_driver_info.setdefault(key, existing_driver_info[key])
+    for key in existing.keys():
+        desired.setdefault(key, existing[key])
     # Remove keys from each if they evaluate to None; this prevents a desired
     # 'None' from being sent to Ironic if it already has no value for that key.
-    for key in list(desired_driver_info.keys()):
-        if (
-            existing_driver_info.get(key) is None
-            and desired_driver_info.get(key) is None
-        ):
-            existing_driver_info.pop(key, None)
-            desired_driver_info.pop(key, None)
+    for key in list(desired.keys()):
+        if existing.get(key) is None and desired.get(key) is None:
+            existing.pop(key, None)
+            desired.pop(key, None)
 
 
 def _wait_for_provision_state(
