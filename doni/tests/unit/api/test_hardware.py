@@ -236,9 +236,13 @@ def test_policy_disallow(
 
 
 def test_update_hardware(
-    mocker, user_auth_headers, client: "FlaskClient", database: "utils.DBFixtures"
+    mocker,
+    admin_context,
+    user_auth_headers,
+    client: "FlaskClient",
+    database: "utils.DBFixtures",
 ):
-    database.add_hardware(uuid=FAKE_UUID)
+    database.add_hardware(uuid=FAKE_UUID, initial_worker_state=WorkerState.STEADY)
     mock_authorize = mocker.patch("doni.api.hardware.authorize")
     patch = [{"path": "/name", "op": "replace", "value": "new-fake-name"}]
     res = client.patch(
@@ -253,6 +257,8 @@ def test_update_hardware(
     )
     _assert_hardware_json_ok(res.json, {"uuid": FAKE_UUID, "name": "new-fake-name"})
     _assert_hardware_has_workers(res.json)
+    for task in WorkerTask.list_for_hardware(admin_context, FAKE_UUID):
+        assert task.state == WorkerState.PENDING
 
 
 @pytest.mark.parametrize(

@@ -284,7 +284,13 @@ def update(hardware_uuid=None, patch=None):
             for window in to_remove:
                 window.destroy()
 
-    worker_tasks = WorkerTask.list_for_hardware(ctx, hardware.uuid)
+        worker_tasks = WorkerTask.list_for_hardware(ctx, hardware.uuid)
+        for task in worker_tasks:
+            if not (task.is_pending or task.is_in_progress):
+                # Take care not to interrupt tasks in progress
+                task.state = WorkerState.PENDING
+                task.save()
+
     return serialize(hardware, worker_tasks=worker_tasks)
 
 

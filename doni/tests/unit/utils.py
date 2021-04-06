@@ -3,10 +3,11 @@
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING
 
-from doni.common import driver_factory, exception
-from doni.db import api as db_api
 from oslo_utils import uuidutils
 from stevedore import extension, named
+
+from doni.common import driver_factory, exception
+from doni.db import api as db_api
 
 if TYPE_CHECKING:
     from pytest_mock import MockerFixture
@@ -114,7 +115,7 @@ class DBFixtures(object):
         self._availability_windows = []
         self._counter = 0
 
-    def add_hardware(self, **hardware_kwargs) -> dict:
+    def add_hardware(self, initial_worker_state=None, **hardware_kwargs) -> dict:
         """Add a hardware item to the test database.
 
         Args:
@@ -129,7 +130,9 @@ class DBFixtures(object):
         fake_hw = get_test_hardware(**hardware_kwargs)
         # ID will be auto-assigned by DB
         fake_hw.pop("id")
-        self._hardwares.append(self.db.create_hardware(fake_hw))
+        self._hardwares.append(
+            self.db.create_hardware(fake_hw, initial_worker_state=initial_worker_state)
+        )
         return fake_hw
 
     def add_availability_window(self, **window_kwargs) -> dict:
