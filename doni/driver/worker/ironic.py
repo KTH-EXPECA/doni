@@ -1,3 +1,4 @@
+import re
 import time
 from functools import wraps
 from textwrap import shorten
@@ -32,6 +33,8 @@ IRONIC_STATE_TARGETS = {
     "manageable": "manage",
     "available": "provide",
 }
+
+MASKED_VALUE_REGEX = re.compile("^\*+$")
 
 
 def _get_ironic_adapter():
@@ -216,7 +219,7 @@ class IronicWorker(BaseWorker):
             uuid = node["uuid"]
             driver_info = node["driver_info"]
 
-            if driver_info.get("ipmi_password", "").startswith("***"):
+            if MASKED_VALUE_REGEX.match(driver_info.get("ipmi_password", "")):
                 LOG.warning(
                     (
                         f"Node {uuid} has masked IPMI password. Please "
