@@ -361,16 +361,6 @@ class BlazarPhysicalHostWorker(BaseWorker):
         return host_result
 
     def import_existing(self, context: "RequestContext"):
-        """Get all known external state managed by this worker.
-
-        This is an optional capability of a worker and supports an 'import' flow where existing
-        resources/state outside of the doni can be brought under doni's management.
-
-        The expected return type is a list of objects with a "uuid" and a "properties" key,
-        representing the UUID of the hardware the state corresponds to (or None if one
-        could not be reasonably determined and should be auto-assigned) and a set of
-        properties that should be imported for that hardware item.
-        """
         existing_hosts = []
         for host in _call_blazar(context, "/os-hosts")["hosts"]:
             existing_hosts.append(
