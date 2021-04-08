@@ -186,7 +186,7 @@ def get_all():
     }
 
 
-@route("/export/", methods=["GET"], blueprint=bp)
+@route("/export", methods=["GET"], blueprint=bp)
 def export():
     ctx = request.context
     serialize = hardware_serializer(with_private_fields=False)
@@ -195,7 +195,7 @@ def export():
     }
 
 
-@route("/<hardware_uuid>/", methods=["GET"], blueprint=bp)
+@route("/<hardware_uuid>", methods=["GET"], blueprint=bp)
 @args.validate(hardware_uuid=args.uuid)
 def get_one(hardware_uuid=None):
     ctx = request.context
@@ -206,7 +206,7 @@ def get_one(hardware_uuid=None):
     return serialize(hardware, worker_tasks=worker_tasks)
 
 
-@route("/<hardware_uuid>/", methods=["DELETE"], blueprint=bp)
+@route("/<hardware_uuid>", methods=["DELETE"], blueprint=bp)
 @args.validate(hardware_uuid=args.uuid)
 def destroy(hardware_uuid=None):
     ctx = request.context
@@ -233,7 +233,7 @@ def create(hardware_params=None):
     return serialize(hardware, worker_tasks=worker_tasks), 201
 
 
-@route("/<hardware_uuid>/", methods=["PATCH"], json_body="patch", blueprint=bp)
+@route("/<hardware_uuid>", methods=["PATCH"], json_body="patch", blueprint=bp)
 @args.validate(hardware_uuid=args.uuid, patch=args.schema(args.PATCH))
 def update(hardware_uuid=None, patch=None):
     ctx = request.context
@@ -294,7 +294,7 @@ def update(hardware_uuid=None, patch=None):
     return serialize(hardware, worker_tasks=worker_tasks)
 
 
-@route("/<hardware_uuid>/sync/", methods=["POST"], blueprint=bp)
+@route("/<hardware_uuid>/sync", methods=["POST"], blueprint=bp)
 @args.validate(hardware_uuid=args.uuid)
 def sync(hardware_uuid=None):
     ctx = request.context

@@ -71,7 +71,7 @@ def test_get_all_hardware(
 ):
     mock_authorize = mocker.patch("doni.api.hardware.authorize")
     hw = database.add_hardware()
-    res = client.get("/v1/hardware/", headers=user_auth_headers)
+    res = client.get("/v1/hardware", headers=user_auth_headers)
     assert res.status_code == 200
     assert len(res.json["hardware"]) == 1
     _assert_hardware_json_ok(res.json["hardware"][0], _with_masked_sensitive_fields(hw))
@@ -80,7 +80,7 @@ def test_get_all_hardware(
 
 def test_get_all_hardware_empty(mocker, user_auth_headers, client: "FlaskClient"):
     mock_authorize = mocker.patch("doni.api.hardware.authorize")
-    res = client.get("/v1/hardware/", headers=user_auth_headers)
+    res = client.get("/v1/hardware", headers=user_auth_headers)
     assert res.status_code == 200
     assert res.json == {
         "hardware": [],
@@ -93,7 +93,7 @@ def test_get_one_hardware(
 ):
     mock_authorize = mocker.patch("doni.api.hardware.authorize")
     hw = database.add_hardware()
-    res = client.get(f"/v1/hardware/{hw['uuid']}/", headers=user_auth_headers)
+    res = client.get(f"/v1/hardware/{hw['uuid']}", headers=user_auth_headers)
     assert res.status_code == 200
     _assert_hardware_json_ok(res.json, _with_masked_sensitive_fields(hw))
     _assert_hardware_has_workers(res.json)
@@ -105,7 +105,7 @@ def test_get_one_hardware(
 def test_missing_hardware(mocker, user_auth_headers, client: "FlaskClient"):
     mocker.patch("doni.api.hardware.authorize")
     res = client.get(
-        f"/v1/hardware/{uuidutils.generate_uuid()}/", headers=user_auth_headers
+        f"/v1/hardware/{uuidutils.generate_uuid()}", headers=user_auth_headers
     )
     assert res.status_code == 404
     assert re.match("Hardware .* could not be found", res.json["error"]) is not None
@@ -127,7 +127,7 @@ def test_enroll_hardware(mocker, user_auth_headers, client: "FlaskClient"):
         },
     }
     res = client.post(
-        f"/v1/hardware/",
+        f"/v1/hardware",
         headers=user_auth_headers,
         content_type="application/json",
         data=json.dumps(enroll_payload),
@@ -173,7 +173,7 @@ def test_enroll_hardware(mocker, user_auth_headers, client: "FlaskClient"):
 def test_enroll_validation(payload, user_auth_headers, client: "FlaskClient"):
     """Tests that validation fails for various cases."""
     res = client.post(
-        f"/v1/hardware/",
+        f"/v1/hardware",
         headers=user_auth_headers,
         content_type="application/json",
         data=json.dumps(payload),
@@ -246,7 +246,7 @@ def test_update_hardware(
     mock_authorize = mocker.patch("doni.api.hardware.authorize")
     patch = [{"path": "/name", "op": "replace", "value": "new-fake-name"}]
     res = client.patch(
-        f"/v1/hardware/{FAKE_UUID}/",
+        f"/v1/hardware/{FAKE_UUID}",
         headers=user_auth_headers,
         content_type="application/json",
         data=json.dumps(patch),
@@ -318,7 +318,7 @@ def test_update_availability(
     database.add_availability_window(hardware_uuid=FAKE_UUID)
     mock_authorize = mocker.patch("doni.api.hardware.authorize")
     res = client.patch(
-        f"/v1/hardware/{FAKE_UUID}/",
+        f"/v1/hardware/{FAKE_UUID}",
         headers=user_auth_headers,
         content_type="application/json",
         data=json.dumps(patch),
@@ -363,7 +363,7 @@ def test_update_availability_final_state(
         },
     ]
     res = client.patch(
-        f"/v1/hardware/{FAKE_UUID}/",
+        f"/v1/hardware/{FAKE_UUID}",
         headers=user_auth_headers,
         content_type="application/json",
         data=json.dumps(patch),
@@ -403,7 +403,7 @@ def test_sync(
     task.state = WorkerState.STEADY
     task.save()
     mock_authorize = mocker.patch("doni.api.hardware.authorize")
-    res = client.post(f"/v1/hardware/{FAKE_UUID}/sync/", headers=user_auth_headers)
+    res = client.post(f"/v1/hardware/{FAKE_UUID}/sync", headers=user_auth_headers)
     assert res.status_code == 204
     mock_authorize.assert_called_once_with(
         "hardware:update", AnyContext(), HardwareMatching(uuid=FAKE_UUID)
@@ -426,7 +426,7 @@ def test_sync_handles_in_progress(
     task.state = WorkerState.IN_PROGRESS
     task.save()
     mock_authorize = mocker.patch("doni.api.hardware.authorize")
-    res = client.post(f"/v1/hardware/{FAKE_UUID}/sync/", headers=user_auth_headers)
+    res = client.post(f"/v1/hardware/{FAKE_UUID}/sync", headers=user_auth_headers)
     assert res.status_code == 204
     mock_authorize.assert_called_once_with(
         "hardware:update", AnyContext(), HardwareMatching(uuid=FAKE_UUID)

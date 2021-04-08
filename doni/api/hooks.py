@@ -38,10 +38,10 @@ class AuthTokenFlaskMiddleware(object):
                 "oslo_config_config": CONF,
             },
         )
-        self.public_paths = ["/", "/v1/hardware/export/"]
+        self.public_paths = ["", "/v1/hardware/export"]
 
     def before_request(self):
-        if request.path in self.public_paths:
+        if request.path.rstrip("/") in self.public_paths:
             return
 
         # When the middleware is invoked, it should mutate request.environ

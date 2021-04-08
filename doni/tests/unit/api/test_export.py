@@ -30,12 +30,12 @@ def test_export_hardware_public(
     database: "utils.DBFixtures",
 ):
     mock_authorize = mocker.patch("doni.api.hardware.authorize")
-    hw = database.add_hardware()
+    database.add_hardware()
     if use_headers:
         headers = user_auth_headers
     else:
         headers = None
-    res = client.get(f"/v1/hardware/export/", headers=headers)
+    res = client.get(f"/v1/hardware/export", headers=headers)
     assert res.status_code == 200
 
     # this is a public endpoint, this should fail

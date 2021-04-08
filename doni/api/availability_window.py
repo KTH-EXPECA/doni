@@ -16,7 +16,7 @@ DEFAULT_FIELDS = (
 )
 
 
-@route("/<uuid:hardware_uuid>/availability/", methods=["GET"], blueprint=bp)
+@route("/<uuid:hardware_uuid>/availability", methods=["GET"], blueprint=bp)
 def get_all(hardware_uuid):
     ctx = request.context
     hardware = Hardware.get_by_uuid(ctx, str(hardware_uuid))
