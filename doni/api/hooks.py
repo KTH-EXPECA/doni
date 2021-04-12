@@ -113,8 +113,8 @@ def route(rule, blueprint: "Blueprint" = None, json_body=None, **options):
                 if json_body:
                     kwargs[json_body] = request.json
                 res = function(*args, **kwargs)
-                # Convert None to 204 No Content
-                return res or ("", 204)
+                # Convert None to 200 with empty contents
+                return res or ("", 200)
             except exception.Invalid as exc:
                 return make_error_response(str(exc), 400)
             except PolicyNotAuthorized as exc:
