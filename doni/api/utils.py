@@ -209,6 +209,11 @@ def apply_patch_updates_to_list(
     primary_key: str = "uuid",
 ) -> "tuple[list[DoniObject],list[DoniObject],list[DoniObject]]":
     obj_map = {getattr(o, primary_key): o for o in objects}
+
+    for u in updates:
+        if not isinstance(u, dict):
+            raise exception.Invalid(f"Expected object-like value but got {u}")
+
     # Generate a default primary key if none exists; this will indicate that
     # this update corresponds to what should be a new object.
     update_map = {u.get(primary_key, uuidutils.generate_uuid()): u for u in updates}
