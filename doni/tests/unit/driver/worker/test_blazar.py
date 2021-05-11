@@ -10,7 +10,7 @@ from oslo_utils import uuidutils
 from doni.driver.worker.blazar import (
     AW_LEASE_PREFIX,
     BlazarPhysicalHostWorker,
-    _blazar_lease_requst_body,
+    _blazar_lease_request_body,
 )
 from doni.objects.availability_window import AvailabilityWindow
 from doni.objects.hardware import Hardware
@@ -110,7 +110,7 @@ def _stub_blazar_host_new(path, method, json):
     elif method == "post" and path == f"/os-hosts":
         # assume that creation succeeds, return created time
         assert json["node_name"] == "fake_name_1"
-        return utils.MockResponse(201, {"created_at": "fake-created_at"})
+        return utils.MockResponse(201, {"host": {"created_at": "fake-created_at"}})
     elif method == "get" and path == f"/leases":
         return utils.MockResponse(200, {"leases": []})
     else:
@@ -128,9 +128,11 @@ def _stub_blazar_host_exist(path, method, json, hw_list=None):
         return utils.MockResponse(
             200,
             {
-                "updated_at": "fake-updated_at",
-                "id": TEST_BLAZAR_HOST_ID,
-                "hypervisor_hostname": TEST_HARDWARE_UUID,
+                "host": {
+                    "updated_at": "fake-updated_at",
+                    "id": TEST_BLAZAR_HOST_ID,
+                    "hypervisor_hostname": TEST_HARDWARE_UUID,
+                },
             },
         )
     elif method == "post" and path == f"/os-hosts":
@@ -250,7 +252,7 @@ def _stub_blazar_lease_new(path, method, json, lease_dict):
         elif path == f"/leases/{lease_id}":
             return utils.MockResponse(404)
     elif method == "post" and path == "/leases":
-        return utils.MockResponse(201, {"created_at": "fake-created_at"})
+        return utils.MockResponse(201, {"lease": {"created_at": "fake-created_at"}})
     elif method == "delete" and path == f"/leases/{lease_id}":
         return utils.MockResponse(404)
 
@@ -263,9 +265,9 @@ def _stub_blazar_lease_existing(path, method, json, lease_dict):
         if path == "/leases":
             return utils.MockResponse(200, lease_body)
         elif path == f"/leases/{lease_id}":
-            return utils.MockResponse(200, {"created_at": "fake-created_at"})
+            return utils.MockResponse(200, {"lease": {"created_at": "fake-created_at"}})
     elif method == "put" and path == f"/leases/{lease_id}":
-        return utils.MockResponse(200, {"updated_at": "fake-updated_at"})
+        return utils.MockResponse(200, {"lease": {"updated_at": "fake-updated_at"}})
     elif method == "post" and path == "/leases":
         return utils.MockResponse(409)
     elif method == "delete" and path == f"/leases/{lease_id}":
@@ -297,7 +299,7 @@ def test_create_new_lease(
         print(f"path: {path}; method: {method}")
 
         lease_response = _stub_blazar_lease_new(
-            path, method, json, _blazar_lease_requst_body(aw_obj)
+            path, method, json, _blazar_lease_request_body(aw_obj)
         )
         if lease_response:
             return lease_response
@@ -361,7 +363,7 @@ def test_update_lease(
 
     def _stub_blazar_request(path, method=None, json=None, **kwargs):
         print(f"path: {path}; method: {method}")
-        response_body = _blazar_lease_requst_body(aw_obj)
+        response_body = _blazar_lease_request_body(aw_obj)
 
         if lease_changed:
             # Change end time to force lease update
@@ -430,7 +432,7 @@ def test_delete_lease(
     fake_window = database.add_availability_window(hardware_uuid=hw_obj.uuid)
 
     aw_obj = AvailabilityWindow(**fake_window)
-    response_body = _blazar_lease_requst_body(aw_obj)
+    response_body = _blazar_lease_request_body(aw_obj)
 
     window_list = []
     if lease_prefix:

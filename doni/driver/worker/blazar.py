@@ -90,7 +90,7 @@ def _blazar_host_request_body(hw: "Hardware") -> dict:
     return body_dict
 
 
-def _blazar_lease_requst_body(aw: AvailabilityWindow) -> dict:
+def _blazar_lease_request_body(aw: AvailabilityWindow) -> dict:
     body_dict = {
         "name": f"{AW_LEASE_PREFIX}{aw.uuid}",
         "start_date": aw.start.isoformat(),
@@ -159,7 +159,7 @@ class BlazarPhysicalHostWorker(BaseWorker):
         """TODO What does this do?"""
         return auth_conf.add_auth_opts(self.opts, service_type="reservation")
 
-    def _blazar_host_update(self, context, hardware, host_id) -> WorkerResult:
+    def _blazar_host_update(self, context, hardware, host_id) -> WorkerResult.Base:
         """Attempt to update existing host in blazar."""
         result = {}
         try:
@@ -171,7 +171,7 @@ class BlazarPhysicalHostWorker(BaseWorker):
                 f"/os-hosts/{host_id}",
                 method="put",
                 json=body,
-            )
+            ).get("host")
         except BlazarAPIError as exc:
             # TODO what error code does blazar return if the host has a lease already?
             if exc.code == 404:
@@ -194,7 +194,7 @@ class BlazarPhysicalHostWorker(BaseWorker):
             result["host_updated_at"] = blazar_host.get("updated_at")
             return WorkerResult.Success(result)
 
-    def _blazar_host_create(self, context, hardware) -> WorkerResult:
+    def _blazar_host_create(self, context, hardware) -> WorkerResult.Base:
         """Attempt to create new host in blazar."""
         result = {}
         try:
@@ -203,7 +203,7 @@ class BlazarPhysicalHostWorker(BaseWorker):
                 f"/os-hosts",
                 method="post",
                 json=_blazar_host_request_body(hardware),
-            )
+            ).get("host")
         except BlazarAPIError as exc:
             if exc.code == 404:
                 # host isn't in ironic.
@@ -247,7 +247,9 @@ class BlazarPhysicalHostWorker(BaseWorker):
         filtered_list = filter(_allowed_prefix, lease_list)
         return list(filtered_list)
 
-    def _blazar_lease_update(self, context: "RequestContext", new_lease: "dict"):
+    def _blazar_lease_update(
+        self, context: "RequestContext", new_lease: "dict"
+    ) -> WorkerResult.Base:
         """Update blazar lease if necessary. Return result dict."""
         result = {}
         try:
@@ -256,19 +258,20 @@ class BlazarPhysicalHostWorker(BaseWorker):
                 f"/leases/{new_lease.get('name')}",
                 method="put",
                 json=new_lease,
-            )
+            ).get("lease")
         except BlazarAPIError as exc:
             if exc.code == 404:
-                # TODO lease ID doesn't exist, how to handle this case?
-                return WorkerResult.Defer(result)
+                return WorkerResult.Defer(reason="Host not found")
             elif exc.code == 409:
-                # TODO Lease update conflicts with another, how to handle this case?
-                return WorkerResult.Defer(result)
+                return WorkerResult.Defer(reason="Conflicts with existing lease")
+            raise
         else:
-            result["lease_updated_at"] = response.get("updated_at")
+            result["updated_at"] = response.get("updated_at")
             return WorkerResult.Success(result)
 
-    def _blazar_lease_create(self, context: "RequestContext", new_lease: "dict"):
+    def _blazar_lease_create(
+        self, context: "RequestContext", new_lease: "dict"
+    ) -> WorkerResult.Base:
         """Create blazar lease. Return result dict."""
         result = {}
         try:
@@ -277,23 +280,24 @@ class BlazarPhysicalHostWorker(BaseWorker):
                 f"/leases",
                 method="post",
                 json=new_lease,
-            )
+            ).get("lease")
         except BlazarAPIError as exc:
             if exc.code == 404:
-                # TODO Host id in lease doesn't exist, what do do?
-                return WorkerResult.Defer(result)
+                return WorkerResult.Defer(reason="Host not found")
             elif exc.code == 409:
-                # TODO Lease conflicts with another, how to handle this case?
-                return WorkerResult.Defer(result)
+                return WorkerResult.Defer(reason="Conflicts with existing lease")
+            raise
         else:
             result["lease_created_at"] = lease.get("created_at")
             return WorkerResult.Success(result)
 
-    def _blazar_lease_delete(self, context: "RequestContext", lease: "dict"):
+    def _blazar_lease_delete(
+        self, context: "RequestContext", lease: "dict"
+    ) -> WorkerResult.Base:
         """Create blazar lease. Return result dict."""
         result = {}
         try:
-            lease = _call_blazar(
+            _call_blazar(
                 context,
                 f"/leases/{lease.get('name')}",
                 method="delete",
@@ -341,7 +345,7 @@ class BlazarPhysicalHostWorker(BaseWorker):
         lease_results = []
         # Loop over all availability windows that Doni has for this hw item
         for aw in availability_windows or []:
-            new_lease = _blazar_lease_requst_body(aw)
+            new_lease = _blazar_lease_request_body(aw)
             # Check to see if lease name already exists in blazar
             matching_index, matching_lease = _search_leases_for_lease_id(
                 leases_to_check, new_lease
@@ -361,9 +365,14 @@ class BlazarPhysicalHostWorker(BaseWorker):
         for lease in leases_to_check:
             delete_results.append(self._blazar_lease_delete(context, lease))
 
-        for result in [lease_results, delete_results]:
-            if isinstance(result, WorkerResult.Defer):
-                return WorkerResult.Success(host_result)
+        if any(
+            isinstance(res, WorkerResult.Defer)
+            for res in lease_results + delete_results
+        ):
+            host_result = WorkerResult.Defer(
+                host_result.payload,
+                reason="One or more availability window leases failed to update",
+            )
 
         return host_result
 
