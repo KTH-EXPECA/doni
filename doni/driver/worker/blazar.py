@@ -93,8 +93,9 @@ def _blazar_host_request_body(hw: "Hardware") -> dict:
 def _blazar_lease_request_body(aw: AvailabilityWindow) -> dict:
     body_dict = {
         "name": f"{AW_LEASE_PREFIX}{aw.uuid}",
-        "start_date": aw.start.isoformat(),
-        "end_date": aw.end.isoformat(),
+        # Blazar doesn't think timezones are a thing ;_;
+        "start_date": aw.start.replace(tzinfo=None).isoformat(),
+        "end_date": aw.end.replace(tzinfo=None).isoformat(),
         "reservations": [
             {
                 "resource_type": "physical:host",
