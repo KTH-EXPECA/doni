@@ -97,7 +97,7 @@ def get_mocked_blazar(mocker, request_fn):
 def _get_hosts_response(hw_list) -> dict:
     response_dict = {"hosts": []}
     for hw in hw_list or []:
-        hw_dict = _blazar_host_requst_body(hw)
+        hw_dict = {"hypervisor_hostname": hw.uuid, "node_name": hw.name}
         hw_dict["id"] = TEST_BLAZAR_HOST_ID
         response_dict["hosts"].append(hw_dict)
     return response_dict
@@ -138,7 +138,6 @@ def _stub_blazar_host_exist(path, method, json, hw_list=None):
             },
         )
     elif method == "post" and path == f"/os-hosts":
-        # TODO Is this true?
         return utils.MockResponse(
             409,
             {

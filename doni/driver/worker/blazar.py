@@ -79,7 +79,7 @@ class BlazarWorkerDefer(exception.DoniException):
 def _blazar_host_requst_body(hw: "Hardware") -> dict:
     hw_props = hw.properties
     body_dict = {
-        "hypervisor_hostname": hw.uuid,
+        "name": hw.uuid,
         "uid": hw.uuid,
         "node_name": hw.name,
         "node_type": hw_props.get("node_type"),
@@ -164,11 +164,14 @@ class BlazarPhysicalHostWorker(BaseWorker):
         """Attempt to update existing host in blazar."""
         result = {}
         try:
+            body = _blazar_host_requst_body(hardware)
+            # Blazar doesn't support updating name
+            body.pop("name", None)
             blazar_host = _call_blazar(
                 context,
                 f"/os-hosts/{host_id}",
                 method="put",
-                json=_blazar_host_requst_body(hardware),
+                json=body,
             )
         except BlazarAPIError as exc:
             # TODO what error code does blazar return if the host has a lease already?
