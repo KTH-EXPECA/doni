@@ -40,6 +40,15 @@ class WorkerResult:
         eventually consistent to expectations.
         """
 
+        DEFER_REASON_DETAIL = "defer_reason"
+
+        def __init__(self, payload: dict = None, reason: str = None):
+            self.reason = reason
+            if self.reason is not None:
+                payload = payload or {}
+                payload[self.DEFER_REASON_DETAIL] = self.reason
+            super().__init__(payload)
+
     class Success(Base):
         """Indicates that the worker completed successfully."""
 

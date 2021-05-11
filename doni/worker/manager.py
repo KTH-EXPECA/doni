@@ -23,13 +23,12 @@ LOG = log.getLogger(__name__)
 
 LAST_ERROR_DETAIL = "last_error"
 DEFER_COUNT_DETAIL = "defer_count"
-DEFER_REASON_DETAIL = "defer_reason"
 FALLBACK_PAYLOAD_DETAIL = "result"
 ALL_DETAILS = (
     LAST_ERROR_DETAIL,
     DEFER_COUNT_DETAIL,
-    DEFER_REASON_DETAIL,
     FALLBACK_PAYLOAD_DETAIL,
+    WorkerResult.Defer.DEFER_REASON_DETAIL,
 )
 
 
@@ -192,7 +191,7 @@ class WorkerManager(object):
                 state_details[DEFER_COUNT_DETAIL] = (
                     state_details.get(DEFER_COUNT_DETAIL, 0) + 1
                 )
-                state_details[DEFER_REASON_DETAIL] = process_result.payload
+                state_details.update(process_result.payload)
                 task.state_details = state_details
             elif isinstance(process_result, WorkerResult.Success):
                 LOG.info(

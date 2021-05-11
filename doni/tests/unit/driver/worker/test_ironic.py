@@ -281,7 +281,7 @@ def test_ironic_update_defer_on_maintenance(
     result = ironic_worker.process(admin_context, get_fake_hardware(database))
 
     assert isinstance(result, WorkerResult.Defer)
-    assert "in maintenance" in result.payload["message"]
+    assert "in maintenance" in result.reason
     assert fake_ironic.call_count == 1
 
 
@@ -348,5 +348,5 @@ def test_ironic_update_defer_on_locked(
     result = ironic_worker.process(admin_context, get_fake_hardware(database))
 
     assert isinstance(result, WorkerResult.Defer)
-    assert "is locked" in result.payload["message"]
+    assert "is locked" in result.reason
     assert fake_ironic.call_count == 1

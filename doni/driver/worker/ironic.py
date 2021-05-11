@@ -56,7 +56,7 @@ def _defer_on_node_locked(fn):
             return fn(*args, **kwargs)
         except IronicAPIError as exc:
             if exc.code == 409:
-                return WorkerResult.Defer({"message": "Node is locked."})
+                return WorkerResult.Defer(reason="Node is locked.")
             raise
 
     return wrapper
@@ -201,12 +201,10 @@ class IronicWorker(BaseWorker):
             # NOTE: there may be a future case where the 'maintenance' flag
             # is managed in the inventory, in which case this will have to change.
             return WorkerResult.Defer(
-                {
-                    "message": (
-                        "Node is in maintenance mode. Please take the node "
-                        "out of maintenance to apply this update."
-                    ),
-                }
+                reason=(
+                    "Node is in maintenance mode. Please take the node "
+                    "out of maintenance to apply this update."
+                )
             )
 
         payload = _do_node_update(context, existing, desired_state)
