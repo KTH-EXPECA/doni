@@ -383,7 +383,7 @@ def test_destroy_hardware(
     database.add_hardware(uuid=FAKE_UUID)
     mock_authorize = mocker.patch("doni.api.hardware.authorize")
     res = client.delete(f"/v1/hardware/{FAKE_UUID}/", headers=user_auth_headers)
-    assert res.status_code == 204
+    assert res.status_code == 200
     mock_authorize.assert_called_once_with(
         "hardware:delete", AnyContext(), HardwareMatching(uuid=FAKE_UUID)
     )
@@ -404,7 +404,7 @@ def test_sync(
     task.save()
     mock_authorize = mocker.patch("doni.api.hardware.authorize")
     res = client.post(f"/v1/hardware/{FAKE_UUID}/sync", headers=user_auth_headers)
-    assert res.status_code == 204
+    assert res.status_code == 200
     mock_authorize.assert_called_once_with(
         "hardware:update", AnyContext(), HardwareMatching(uuid=FAKE_UUID)
     )
@@ -427,7 +427,7 @@ def test_sync_handles_in_progress(
     task.save()
     mock_authorize = mocker.patch("doni.api.hardware.authorize")
     res = client.post(f"/v1/hardware/{FAKE_UUID}/sync", headers=user_auth_headers)
-    assert res.status_code == 204
+    assert res.status_code == 200
     mock_authorize.assert_called_once_with(
         "hardware:update", AnyContext(), HardwareMatching(uuid=FAKE_UUID)
     )

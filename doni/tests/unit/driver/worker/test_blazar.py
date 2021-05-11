@@ -134,13 +134,17 @@ def _stub_blazar_host_exist(path, method, json, hw_list=None):
             {
                 "updated_at": "fake-updated_at",
                 "id": TEST_BLAZAR_HOST_ID,
-                "name": TEST_HARDWARE_UUID,
+                "hypervisor_hostname": TEST_HARDWARE_UUID,
             },
         )
     elif method == "post" and path == f"/os-hosts":
         # TODO Is this true?
         return utils.MockResponse(
-            409, {"created_at": "fake-created_at", "name": "{TEST_BLAZAR_HOST_ID}"}
+            409,
+            {
+                "error_code": 409,
+                "error_message": "fake-error_message",
+            },
         )
     elif method == "get" and path == f"/leases":
         return utils.MockResponse(200, {"leases": []})

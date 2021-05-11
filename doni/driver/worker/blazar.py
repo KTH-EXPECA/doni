@@ -79,7 +79,7 @@ class BlazarWorkerDefer(exception.DoniException):
 def _blazar_host_requst_body(hw: "Hardware") -> dict:
     hw_props = hw.properties
     body_dict = {
-        "name": hw.uuid,
+        "hypervisor_hostname": hw.uuid,
         "uid": hw.uuid,
         "node_name": hw.name,
         "node_type": hw_props.get("node_type"),
@@ -127,7 +127,7 @@ def _search_hosts_for_uuid(context: "RequestContext", hw_uuid: "str") -> dict:
     )
     host_list = host_list_response.get("hosts")
     matching_host = next(
-        (host for host in host_list if host.get("name") == hw_uuid),
+        (host for host in host_list if host.get("hypervisor_hostname") == hw_uuid),
         None,
     )
     return matching_host
@@ -214,7 +214,12 @@ class BlazarPhysicalHostWorker(BaseWorker):
                     result["blazar_host_id"] = host.get("id")
                 else:
                     # got conflict despite no matching host,
-                    raise BlazarIsWrongError()
+                    raise BlazarIsWrongError(
+                        message=(
+                            "Couldn't find host in Blazar, yet Blazar returned a "
+                            "409 on host create. Check Blazar for errors."
+                        )
+                    )
                 return WorkerResult.Defer(result)
             else:
                 raise
