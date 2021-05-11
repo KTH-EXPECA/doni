@@ -8,6 +8,7 @@ from doni.common import exception
 from doni.conf import CONF
 
 from typing import TYPE_CHECKING
+
 if TYPE_CHECKING:
     from typing import Mapping
     from doni.driver.hardware_type import HardwareType
@@ -16,12 +17,12 @@ if TYPE_CHECKING:
 
 LOG = log.getLogger(__name__)
 
-EM_SEMAPHORE = 'extension_manager'
+EM_SEMAPHORE = "extension_manager"
 
 
 def _get_all_drivers(factory):
     """Get all drivers for `factory` as a dict name -> driver object."""
-    return { name: factory[name].obj for name in factory.names }
+    return {name: factory[name].obj for name in factory.names}
 
 
 def get_worker_type(worker_type) -> "BaseWorker":
@@ -78,16 +79,19 @@ def hardware_types() -> "Mapping[str,HardwareType]":
     return _get_all_drivers(HardwareTypeFactory())
 
 
-def _create_extension_manager(namespace, names,
-                              on_load_failure_callback=None,
-                              on_missing_entrypoints_callback=None):
+def _create_extension_manager(
+    namespace,
+    names,
+    on_load_failure_callback=None,
+    on_missing_entrypoints_callback=None,
+):
     return named.NamedExtensionManager(
         namespace,
         names,
         invoke_on_load=True,
         on_load_failure_callback=on_load_failure_callback,
         propagate_map_exceptions=True,
-        on_missing_entrypoints_callback=on_missing_entrypoints_callback
+        on_missing_entrypoints_callback=on_missing_entrypoints_callback,
     )
 
 
@@ -96,12 +100,13 @@ class BaseDriverFactory(object):
 
     This is subclassed to load both main drivers and extra interfaces.
     """
+
     _extension_manager = None
     # Entrypoint name containing the list of all available drivers/interfaces
     _entrypoint_name = None
     # Name of the [DEFAULT] section config option containing a list of enabled
     # drivers/interfaces
-    _enabled_driver_list_config_option = ''
+    _enabled_driver_list_config_option = ""
     # This field will contain the list of the enabled drivers/interfaces names
     # without duplicates
     _enabled_driver_list = None
@@ -130,8 +135,7 @@ class BaseDriverFactory(object):
         #             creation of multiple NameDispatchExtensionManagers.
         if cls._extension_manager:
             return
-        enabled_drivers = getattr(CONF, cls._enabled_driver_list_config_option,
-                                  [])
+        enabled_drivers = getattr(CONF, cls._enabled_driver_list_config_option, [])
 
         # Check for duplicated driver entries and warn the operator
         # about them
@@ -140,19 +144,24 @@ class BaseDriverFactory(object):
         cls._enabled_driver_list = []
         for item, cnt in counter:
             if not item:
-                LOG.warning('An empty driver was specified in the "%s" '
-                            'configuration option and will be ignored. Please '
-                            'fix your ironic.conf file to avoid this warning '
-                            'message.', cls._enabled_driver_list_config_option)
+                LOG.warning(
+                    'An empty driver was specified in the "%s" '
+                    "configuration option and will be ignored. Please "
+                    "fix your ironic.conf file to avoid this warning "
+                    "message.",
+                    cls._enabled_driver_list_config_option,
+                )
                 continue
             if cnt > 1:
                 duplicated_drivers.append(item)
             cls._enabled_driver_list.append(item)
         if duplicated_drivers:
-            LOG.warning('The driver(s) "%s" is/are duplicated in the '
-                        'list of enabled_drivers. Please check your '
-                        'configuration file.',
-                        ', '.join(duplicated_drivers))
+            LOG.warning(
+                'The driver(s) "%s" is/are duplicated in the '
+                "list of enabled_drivers. Please check your "
+                "configuration file.",
+                ", ".join(duplicated_drivers),
+            )
 
         # NOTE(tenbrae): Drivers raise "DriverLoadError" if they are unable to
         #             be loaded, eg. due to missing external dependencies.
@@ -171,15 +180,16 @@ class BaseDriverFactory(object):
                 raise exc
 
         def missing_callback(names):
-            names = ', '.join(names)
+            names = ", ".join(names)
             raise exception.DriverNotFoundInEntrypoint(
-                names=names, entrypoint=cls._entrypoint_name)
+                names=names, entrypoint=cls._entrypoint_name
+            )
 
         cls._extension_manager = _create_extension_manager(
             cls._entrypoint_name,
             cls._enabled_driver_list,
             on_load_failure_callback=_catch_driver_not_found,
-            on_missing_entrypoints_callback=missing_callback
+            on_missing_entrypoints_callback=missing_callback,
         )
 
         LOG.info(f"Loaded the following drivers: {cls._extension_manager.names()}")
@@ -199,14 +209,14 @@ class BaseDriverFactory(object):
 
 
 class HardwareTypeFactory(BaseDriverFactory):
-    _entrypoint_name = 'doni.driver.hardware_type'
-    _enabled_driver_list_config_option = 'enabled_hardware_types'
+    _entrypoint_name = "doni.driver.hardware_type"
+    _enabled_driver_list_config_option = "enabled_hardware_types"
     _logging_template = "Loaded the following hardware types: %s"
 
 
 class WorkerTypeFactory(BaseDriverFactory):
-    _entrypoint_name = 'doni.driver.worker_type'
-    _enabled_driver_list_config_option = 'enabled_worker_types'
+    _entrypoint_name = "doni.driver.worker_type"
+    _enabled_driver_list_config_option = "enabled_worker_types"
     _logging_template = "Loaded the following worker types: %s"
 
     def on_load(self, extension):

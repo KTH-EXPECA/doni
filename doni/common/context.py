@@ -3,6 +3,7 @@ from oslo_context import context
 
 class RequestContext(context.RequestContext):
     """Extends security contexts from the oslo.context library."""
+
     def ensure_thread_contain_context(self):
         """Ensure threading contains context
         For async/periodic tasks, the context of local thread is missing.
@@ -16,10 +17,9 @@ class RequestContext(context.RequestContext):
 
 def get_admin_context():
     """Create an administrator context."""
-    context = RequestContext(auth_token=None,
-                             project_id=None,
-                             is_admin=True,
-                             overwrite=False)
+    context = RequestContext(
+        auth_token=None, project_id=None, is_admin=True, overwrite=False
+    )
     return context
 
 

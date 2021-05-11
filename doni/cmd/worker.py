@@ -22,7 +22,9 @@ def main():
     doni_service.prepare_service(sys.argv)
     gmr_opts.set_defaults(CONF)
     gmr.TextGuruMeditation.setup_autorun(__version__, conf=CONF)
-    launcher = service.launch(CONF,
+    launcher = service.launch(
+        CONF,
         doni_service.DoniService(CONF.host, "doni.worker.manager", "WorkerManager"),
-        restart_method='reload')
+        restart_method="reload",
+    )
     launcher.wait()

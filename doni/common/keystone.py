@@ -26,6 +26,7 @@ from doni.common import exception
 from doni.conf import CONF
 
 from typing import TYPE_CHECKING
+
 if TYPE_CHECKING:
     from keystoneauth1.adapter import Adapter
     from keystoneauth1.identity import BaseIdentityPlugin
@@ -37,6 +38,7 @@ LOG = logging.getLogger(__name__)
 
 def ks_exceptions(f):
     """Wraps keystoneclient functions and centralizes exception handling."""
+
     @functools.wraps(f)
     def wrapper(*args, **kwargs):
         try:
@@ -45,15 +47,19 @@ def ks_exceptions(f):
             service_type = kwargs.get("service_type", "inventory")
             endpoint_type = kwargs.get("endpoint_type", "internal")
             raise exception.CatalogNotFound(
-                service_type=service_type, endpoint_type=endpoint_type)
+                service_type=service_type, endpoint_type=endpoint_type
+            )
         except (ks_exception.Unauthorized, ks_exception.AuthorizationFailure):
             raise exception.KeystoneUnauthorized()
-        except (ks_exception.NoMatchingPlugin,
-                ks_exception.MissingRequiredOptions) as e:
+        except (
+            ks_exception.NoMatchingPlugin,
+            ks_exception.MissingRequiredOptions,
+        ) as e:
             raise exception.ConfigInvalid(str(e))
         except Exception as e:
             LOG.exception(f"Keystone request failed: {e}")
             raise exception.KeystoneFailure(str(e))
+
     return wrapper
 
 
@@ -71,8 +77,7 @@ def get_session(group, **session_kwargs) -> "Session":
     Returns:
         A :class:`keystoneauth1.session.Session` object.
     """
-    return ks_loading.load_session_from_conf_options(
-        CONF, group, **session_kwargs)
+    return ks_loading.load_session_from_conf_options(CONF, group, **session_kwargs)
 
 
 @ks_exceptions
@@ -89,8 +94,7 @@ def get_auth(group, **auth_kwargs) -> "BaseIdentityPlugin":
 
     """
     try:
-        auth = ks_loading.load_auth_from_conf_options(CONF, group,
-                                                      **auth_kwargs)
+        auth = ks_loading.load_auth_from_conf_options(CONF, group, **auth_kwargs)
     except ks_exception.MissingRequiredOptions:
         LOG.error(f"Failed to load auth plugin from group {group}")
         raise
@@ -108,8 +112,7 @@ def get_adapter(group, **adapter_kwargs) -> "Adapter":
     :param group: name of the config section to load adapter options from
 
     """
-    return ks_loading.load_adapter_from_conf_options(CONF, group,
-                                                     **adapter_kwargs)
+    return ks_loading.load_adapter_from_conf_options(CONF, group, **adapter_kwargs)
 
 
 def get_endpoint(group, **adapter_kwargs):
@@ -125,11 +128,12 @@ def get_endpoint(group, **adapter_kwargs):
     result = get_adapter(group, **adapter_kwargs).get_endpoint()
     if not result:
         service_type = adapter_kwargs.get(
-            "service_type",
-            getattr(getattr(CONF, group), "service_type", group))
+            "service_type", getattr(getattr(CONF, group), "service_type", group)
+        )
         endpoint_type = adapter_kwargs.get("endpoint_type", "internal")
         raise exception.CatalogNotFound(
-            service_type=service_type, endpoint_type=endpoint_type)
+            service_type=service_type, endpoint_type=endpoint_type
+        )
     return result
 
 
@@ -145,5 +149,6 @@ def get_service_auth(context, endpoint, service_auth):
     """
     # TODO(pas-ha) use auth plugin from context when it is available
     user_auth = token_endpoint.Token(endpoint, context.auth_token)
-    return service_token.ServiceTokenAuthWrapper(user_auth=user_auth,
-                                                 service_auth=service_auth)
+    return service_token.ServiceTokenAuthWrapper(
+        user_auth=user_auth, service_auth=service_auth
+    )

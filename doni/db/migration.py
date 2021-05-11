@@ -10,7 +10,7 @@ from doni.db import models
 
 
 def _alembic_config():
-    path = os.path.join(os.path.dirname(__file__), 'alembic.ini')
+    path = os.path.join(os.path.dirname(__file__), "alembic.ini")
     config = alembic_config.Config(path)
     return config
 
@@ -34,10 +34,10 @@ def upgrade(revision, config=None):
     Args:
         revision (str): Desired database version.
     """
-    revision = revision or 'head'
+    revision = revision or "head"
     config = config or _alembic_config()
 
-    alembic.command.upgrade(config, revision or 'head')
+    alembic.command.upgrade(config, revision or "head")
 
 
 def create_schema(config=None, engine=None):
@@ -52,11 +52,12 @@ def create_schema(config=None, engine=None):
     #                schema, it will only add the new tables, but leave
     #                existing as is. So we should avoid of this situation.
     if version(engine=engine) is not None:
-        raise db_exc.DBMigrationError("DB schema is already under version"
-                                      " control. Use upgrade() instead")
+        raise db_exc.DBMigrationError(
+            "DB schema is already under version" " control. Use upgrade() instead"
+        )
 
     models.Base.metadata.create_all(engine)
-    stamp('head', config=config)
+    stamp("head", config=config)
 
 
 def downgrade(revision, config=None):
@@ -65,7 +66,7 @@ def downgrade(revision, config=None):
     Args:
         revision (str): Desired database version.
     """
-    revision = revision or 'base'
+    revision = revision or "base"
     config = config or _alembic_config()
     return alembic.command.downgrade(config, revision)
 
@@ -92,5 +93,4 @@ def revision(message=None, autogenerate=False, config=None):
             state.
     """
     config = config or _alembic_config()
-    return alembic.command.revision(config, message=message,
-                                    autogenerate=autogenerate)
+    return alembic.command.revision(config, message=message, autogenerate=autogenerate)

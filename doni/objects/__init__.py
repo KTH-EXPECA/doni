@@ -5,8 +5,7 @@ from doni.db import api as db_api
 
 @contextmanager
 def transaction():
-    """A helper context manager for batching several object operations.
-    """
+    """A helper context manager for batching several object operations."""
     with db_api._session_for_write():
         yield
 

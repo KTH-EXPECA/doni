@@ -24,10 +24,10 @@ def main():
 
     # Build and start the WSGI app
     launcher = doni_service.process_launcher()
-    server = wsgi.WSGIService('doni_api', CONF.api.enable_ssl_api)
+    server = wsgi.WSGIService("doni_api", CONF.api.enable_ssl_api)
     launcher.launch_service(server, workers=server.workers)
     launcher.wait()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     sys.exit(main())

@@ -30,13 +30,18 @@ class WSGIService(service.ServiceBase):
         )
         if self.workers and self.workers < 1:
             raise exception.ConfigInvalid(
-                _("api_workers value of %d is invalid, "
-                  "must be greater than 0.") % self.workers)
+                _("api_workers value of %d is invalid, " "must be greater than 0.")
+                % self.workers
+            )
 
-        self.server = wsgi.Server(CONF, name, self.app,
-                                  host=CONF.api.host_ip,
-                                  port=CONF.api.port,
-                                  use_ssl=use_ssl)
+        self.server = wsgi.Server(
+            CONF,
+            name,
+            self.app,
+            host=CONF.api.host_ip,
+            port=CONF.api.port,
+            use_ssl=use_ssl,
+        )
 
     def start(self):
         """Start serving this service using loaded configuration.

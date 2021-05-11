@@ -9,7 +9,7 @@ from doni.tests.unit import utils
 
 @pytest.fixture
 def client(database) -> "FlaskClient":
-    app = create_app(test_config={'TESTING': True})
+    app = create_app(test_config={"TESTING": True})
 
     with app.test_client() as client:
         yield client
@@ -25,11 +25,13 @@ def tokens() -> "AuthTokenFixture":
 
 def _token_fixture(**kwargs):
     token = ksa_fixture.V3Token(**kwargs)
-    s = token.add_service('identity')
-    s.add_standard_endpoints(public='http://example.com/identity/public',
-                             admin='http://example.com/identity/admin',
-                             internal='http://example.com/identity/internal',
-                             region='RegionOne')
+    s = token.add_service("identity")
+    s.add_standard_endpoints(
+        public="http://example.com/identity/public",
+        admin="http://example.com/identity/admin",
+        internal="http://example.com/identity/internal",
+        region="RegionOne",
+    )
     return token
 
 
