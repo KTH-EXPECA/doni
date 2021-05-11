@@ -76,17 +76,16 @@ class BlazarWorkerDefer(exception.DoniException):
     """Signal to defer worker result."""
 
 
-def _blazar_host_requst_body(hw: "Hardware") -> dict:
+def _blazar_host_request_body(hw: "Hardware") -> dict:
     hw_props = hw.properties
+    placement_props = hw_props.get("placement", {})
     body_dict = {
         "name": hw.uuid,
         "uid": hw.uuid,
         "node_name": hw.name,
         "node_type": hw_props.get("node_type"),
-        "placement": {
-            "node": hw_props.get("node"),
-            "rack": hw_props.get("rack"),
-        },
+        "placement.node": placement_props.get("node"),
+        "placement.rack": placement_props.get("rack"),
     }
     return body_dict
 
@@ -164,7 +163,7 @@ class BlazarPhysicalHostWorker(BaseWorker):
         """Attempt to update existing host in blazar."""
         result = {}
         try:
-            body = _blazar_host_requst_body(hardware)
+            body = _blazar_host_request_body(hardware)
             # Blazar doesn't support updating name
             body.pop("name", None)
             blazar_host = _call_blazar(
@@ -203,7 +202,7 @@ class BlazarPhysicalHostWorker(BaseWorker):
                 context,
                 f"/os-hosts",
                 method="post",
-                json=_blazar_host_requst_body(hardware),
+                json=_blazar_host_request_body(hardware),
             )
         except BlazarAPIError as exc:
             if exc.code == 404:

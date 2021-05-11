@@ -1,5 +1,4 @@
 """Unit tests for blazar sync worker."""
-import json
 from datetime import timedelta
 from typing import TYPE_CHECKING
 from unittest import mock
@@ -7,15 +6,12 @@ from unittest import mock
 import pytest
 from keystoneauth1 import loading as ks_loading
 from oslo_utils import uuidutils
-from oslo_versionedobjects.fields import String
 
 from doni.driver.worker.blazar import (
     AW_LEASE_PREFIX,
     BlazarPhysicalHostWorker,
-    _blazar_host_requst_body,
     _blazar_lease_requst_body,
 )
-from doni.objects import hardware
 from doni.objects.availability_window import AvailabilityWindow
 from doni.objects.hardware import Hardware
 from doni.tests.unit import utils
