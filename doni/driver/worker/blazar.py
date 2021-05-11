@@ -20,6 +20,7 @@ LOG = log.getLogger(__name__)
 
 BLAZAR_API_VERSION = "1"
 BLAZAR_API_MICROVERSION = "1.0"
+BLAZAR_DATE_FORMAT = "%Y-%m-%d %H:%M"
 _BLAZAR_ADAPTER = None
 
 AW_LEASE_PREFIX = "availability_window_"
@@ -93,9 +94,8 @@ def _blazar_host_request_body(hw: "Hardware") -> dict:
 def _blazar_lease_request_body(aw: AvailabilityWindow) -> dict:
     body_dict = {
         "name": f"{AW_LEASE_PREFIX}{aw.uuid}",
-        # Blazar doesn't think timezones are a thing ;_;
-        "start_date": aw.start.replace(tzinfo=None).isoformat(' '),
-        "end_date": aw.end.replace(tzinfo=None).isoformat(' '),
+        "start_date": aw.start.strftime(BLAZAR_DATE_FORMAT),
+        "end_date": aw.end.strftime(BLAZAR_DATE_FORMAT),
         "reservations": [
             {
                 "resource_type": "physical:host",
