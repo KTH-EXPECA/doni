@@ -301,6 +301,7 @@ def test_ironic_provision_state_timeout(
                     "uuid": TEST_HARDWARE_UUID,
                     "maintenance": False,
                     "provision_state": "available",
+                    "driver_info": {},
                 },
             )
         elif (
@@ -350,3 +351,58 @@ def test_ironic_update_defer_on_locked(
     assert isinstance(result, WorkerResult.Defer)
     assert "is locked" in result.reason
     assert fake_ironic.call_count == 1
+
+
+def test_ironic_skips_update_on_empty_patch(
+    mocker,
+    admin_context: "RequestContext",
+    ironic_worker: "IronicWorker",
+    database: "utils.DBFixtures",
+):
+    """Test that nodes in locked state are deferred."""
+
+    def _fake_ironic_for_noop_update(path, method=None, json=None, **kwargs):
+        if method == "get" and path == f"/nodes/{TEST_HARDWARE_UUID}":
+            return utils.MockResponse(
+                200,
+                {
+                    "uuid": TEST_HARDWARE_UUID,
+                    "name": "fake-name",
+                    "created_at": "fake-created_at",
+                    "driver": "fake-driver",
+                    "driver_info": {
+                        "ipmi_address": "fake-management_address",
+                        "ipmi_username": "fake-ipmi_username",
+                        "ipmi_password": "fake-ipmi_password",
+                    },
+                    "resource_class": "fake-resource_class",
+                },
+            )
+        elif (
+            method == "get" and path == f"/ports?node={TEST_HARDWARE_UUID}&detail=True"
+        ):
+            return utils.MockResponse(
+                200,
+                {
+                    "ports": [
+                        {
+                            "address": "00:00:00:00:00:00",
+                            "extra": {"name": "fake-iface1_name"},
+                            "local_link_connection": {
+                                "port_id": None,
+                                "switch_id": None,
+                                "switch_info": None,
+                            },
+                        }
+                    ]
+                },
+            )
+        raise NotImplementedError("Unexpected request signature")
+
+    fake_ironic = get_fake_ironic(mocker, _fake_ironic_for_noop_update)
+
+    result = ironic_worker.process(admin_context, get_fake_hardware(database))
+
+    assert isinstance(result, WorkerResult.Success)
+    assert result.payload == {"created_at": "fake-created_at"}
+    assert fake_ironic.call_count == 2

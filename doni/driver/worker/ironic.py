@@ -274,15 +274,18 @@ def _do_node_create(context, desired_state) -> dict:
 def _do_node_update(context, ironic_node, desired_state) -> dict:
     node_uuid = ironic_node["uuid"]
 
+    existing_state = {key: ironic_node.get(key) for key in desired_state.keys()}
+    _normalize_for_patch(existing_state["driver_info"], desired_state["driver_info"])
+    patch = jsonpatch.make_patch(existing_state, desired_state)
+
+    if not patch:
+        return _success_payload(ironic_node)
+
     # Nodes must be in 'manageable' state to change driver
     # TODO: we can tell by what kind of diff we need whether this is
     # actually required.
     if ironic_node["provision_state"] != "manageable":
         _wait_for_provision_state(context, node_uuid, target_state="manageable")
-
-    existing_state = {key: ironic_node.get(key) for key in desired_state.keys()}
-    _normalize_for_patch(existing_state["driver_info"], desired_state["driver_info"])
-    patch = jsonpatch.make_patch(existing_state, desired_state)
 
     updated = _call_ironic(
         context, f"/nodes/{node_uuid}", method="patch", json=list(patch)
