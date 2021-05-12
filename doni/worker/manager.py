@@ -1,6 +1,5 @@
 import itertools
 from collections import defaultdict
-from re import A
 from typing import TYPE_CHECKING
 
 import futurist
@@ -30,6 +29,12 @@ ALL_DETAILS = (
     FALLBACK_PAYLOAD_DETAIL,
     WorkerResult.Defer.DEFER_REASON_DETAIL,
 )
+
+
+def _chunks(l, chunk_size):
+    """Break a list into several lists of at most size chunk_size."""
+    for i in range(0, len(l), chunk_size):
+        yield l[i : (i + chunk_size)]
 
 
 class WorkerManager(object):
@@ -115,12 +120,20 @@ class WorkerManager(object):
         grouped_tasks = defaultdict(list)
         for task in pending_tasks:
             grouped_tasks[task.hardware_uuid].append(task)
+
         task_batches = [
             list(filter(None, batch))
             for batch in itertools.zip_longest(*grouped_tasks.values())
         ]  # type: list[list[WorkerTask]]
 
-        for i, batch in enumerate(task_batches):
+        # Ensure no more than ``task_pool_size`` entries are in a particular
+        # batch. The thread pool executor will raise an error if more than
+        # that many tasks are put into the pool at any one time.
+        chunked_batches = itertools.chain(
+            *[_chunks(batch, CONF.worker.task_pool_size) for batch in task_batches]
+        )
+
+        for i, batch in enumerate(chunked_batches):
             done, _ = waiters.wait_for_all(
                 [
                     self._spawn_worker(

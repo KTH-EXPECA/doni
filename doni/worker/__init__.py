@@ -30,7 +30,7 @@ class WorkerResult:
         payload: dict = {}
 
         def __init__(self, payload: dict = None):
-            self.payload = payload
+            self.payload = payload or {}
 
     class Defer(Base):
         """Indicates that the worker should defer execution of this task.
