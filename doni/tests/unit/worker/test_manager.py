@@ -89,7 +89,7 @@ def test_batching(
 ):
     for _ in range(10):
         database.add_hardware()
-    test_config.config(group="worker", task_pool_size=1)
+    test_config.config(group="worker", task_concurrency=1)
 
     worked_on = []
 

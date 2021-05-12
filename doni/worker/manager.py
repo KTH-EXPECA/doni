@@ -126,11 +126,11 @@ class WorkerManager(object):
             for batch in itertools.zip_longest(*grouped_tasks.values())
         ]  # type: list[list[WorkerTask]]
 
-        # Ensure no more than ``task_pool_size`` entries are in a particular
+        # Ensure no more than ``task_concurrency`` entries are in a particular
         # batch. The thread pool executor will raise an error if more than
         # that many tasks are put into the pool at any one time.
         chunked_batches = itertools.chain(
-            *[_chunks(batch, CONF.worker.task_pool_size) for batch in task_batches]
+            *[_chunks(batch, CONF.worker.task_concurrency) for batch in task_batches]
         )
 
         for i, batch in enumerate(chunked_batches):
