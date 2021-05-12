@@ -7,11 +7,9 @@ import pytest
 from keystoneauth1 import loading as ks_loading
 from oslo_utils import uuidutils
 
-from doni.driver.worker.blazar import (
-    AW_LEASE_PREFIX,
-    BlazarPhysicalHostWorker,
-    _blazar_lease_request_body,
-)
+from doni.driver.worker.blazar import (AW_LEASE_PREFIX,
+                                       BlazarPhysicalHostWorker,
+                                       _blazar_lease_request_body)
 from doni.objects.availability_window import AvailabilityWindow
 from doni.objects.hardware import Hardware
 from doni.tests.unit import utils
@@ -25,6 +23,12 @@ TEST_HARDWARE_UUID = uuidutils.generate_uuid()
 
 if TYPE_CHECKING:
     from doni.common.context import RequestContext
+
+
+def _fake_lease(aw_obj):
+    lease = _blazar_lease_request_body(aw_obj)
+    lease["id"] = uuidutils.generate_uuid()
+    return lease
 
 
 @pytest.fixture
@@ -245,7 +249,7 @@ def test_existing_physical_host(
 
 def _stub_blazar_lease_new(path, method, json, lease_dict):
     """Stub for blazar when when no leases exist."""
-    lease_id = lease_dict.get("name")
+    lease_id = lease_dict["id"]
     if method == "get":
         if path == "/leases":
             return utils.MockResponse(200, {"leases": []})
@@ -260,7 +264,7 @@ def _stub_blazar_lease_new(path, method, json, lease_dict):
 def _stub_blazar_lease_existing(path, method, json, lease_dict):
     """Stub for blazar when when a lease with matching UUID exists."""
     lease_body = {"leases": [lease_dict]}
-    lease_id = lease_dict.get("name")
+    lease_id = lease_dict["id"]
     if method == "get":
         if path == "/leases":
             return utils.MockResponse(200, lease_body)
@@ -298,9 +302,7 @@ def test_create_new_lease(
     def _stub_blazar_request(path, method=None, json=None, **kwargs):
         print(f"path: {path}; method: {method}")
 
-        lease_response = _stub_blazar_lease_new(
-            path, method, json, _blazar_lease_request_body(aw_obj)
-        )
+        lease_response = _stub_blazar_lease_new(path, method, json, _fake_lease(aw_obj))
         if lease_response:
             return lease_response
 
@@ -360,17 +362,17 @@ def test_update_lease(
     hw_obj = get_fake_hardware(database)
     fake_window = database.add_availability_window(hardware_uuid=hw_obj.uuid)
     aw_obj = AvailabilityWindow(**fake_window)
+    fake_lease = _fake_lease(aw_obj)
 
     def _stub_blazar_request(path, method=None, json=None, **kwargs):
         print(f"path: {path}; method: {method}")
-        response_body = _blazar_lease_request_body(aw_obj)
 
         if lease_changed:
             # Change end time to force lease update
             timechange = timedelta(days=1)
-            response_body["end_date"] = (aw_obj.end + timechange).isoformat()
+            fake_lease["end_date"] = (aw_obj.end + timechange).isoformat()
 
-        lease_response = _stub_blazar_lease_existing(path, method, json, response_body)
+        lease_response = _stub_blazar_lease_existing(path, method, json, fake_lease)
         if lease_response:
             return lease_response
 
@@ -432,7 +434,7 @@ def test_delete_lease(
     fake_window = database.add_availability_window(hardware_uuid=hw_obj.uuid)
 
     aw_obj = AvailabilityWindow(**fake_window)
-    response_body = _blazar_lease_request_body(aw_obj)
+    response_body = _fake_lease(aw_obj)
 
     window_list = []
     if lease_prefix:

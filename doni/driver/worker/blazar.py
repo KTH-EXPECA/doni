@@ -231,32 +231,35 @@ class BlazarPhysicalHostWorker(BaseWorker):
             result["host_created_at"] = host.get("created_at")
             return WorkerResult.Success(result)
 
-    def _blazar_lease_list(self, context: "RequestContext"):
+    def _blazar_lease_list(self, context: "RequestContext", hardware: "Hardware"):
         """Get list of all leases from blazar. Return dict of blazar response."""
-
-        def _allowed_prefix(lease: "dict") -> "bool":
-            lease_name = lease.get("name")
-            return lease_name.startswith(AW_LEASE_PREFIX)
-
         # List of all leases from blazar.
         lease_list_response = _call_blazar(
             context,
             "/leases",
             method="get",
         )
-        lease_list = lease_list_response.get("leases")
-        filtered_list = filter(_allowed_prefix, lease_list)
-        return list(filtered_list)
+        return [
+            lease
+            for lease in lease_list_response.get("leases")
+            # Perform a bit of a kludgy check to see if the UUID appears at
+            # all in the nested JSON string representing the reservation
+            # contraints.
+            if (
+                lease["name"].startswith(AW_LEASE_PREFIX)
+                and hardware.uuid in str(lease["reservations"])
+            )
+        ]
 
     def _blazar_lease_update(
-        self, context: "RequestContext", new_lease: "dict"
+        self, context: "RequestContext", lease_id: "str", new_lease: "dict"
     ) -> WorkerResult.Base:
         """Update blazar lease if necessary. Return result dict."""
         result = {}
         try:
             response = _call_blazar(
                 context,
-                f"/leases/{new_lease.get('name')}",
+                f"/leases/{lease_id}",
                 method="put",
                 json=new_lease,
             ).get("lease")
@@ -296,19 +299,12 @@ class BlazarPhysicalHostWorker(BaseWorker):
         self, context: "RequestContext", lease: "dict"
     ) -> WorkerResult.Base:
         """Create blazar lease. Return result dict."""
-        result = {}
-        try:
-            _call_blazar(
-                context,
-                f"/leases/{lease.get('name')}",
-                method="delete",
-            )
-        except BlazarAPIError as exc:
-            if exc.code == 404:
-                # TODO Host id in lease doesn't exist, what do do?
-                return WorkerResult.Defer(result)
-        else:
-            return WorkerResult.Success(result)
+        _call_blazar(
+            context,
+            f"/leases/{lease['id']}",
+            method="delete",
+        )
+        return WorkerResult.Success()
 
     def process(
         self,
@@ -341,7 +337,7 @@ class BlazarPhysicalHostWorker(BaseWorker):
             return host_result  # Return early on defer case
 
         # Get all leases from blazar
-        leases_to_check = self._blazar_lease_list(context)
+        leases_to_check = self._blazar_lease_list(context, hardware)
 
         lease_results = []
         # Loop over all availability windows that Doni has for this hw item
@@ -357,7 +353,11 @@ class BlazarPhysicalHostWorker(BaseWorker):
                 # Update case.
                 if not new_lease.items() <= matching_lease.items():
                     # If new lease is a subset of old_lease, we don't need to update
-                    lease_results.append(self._blazar_lease_update(context, new_lease))
+                    lease_results.append(
+                        self._blazar_lease_update(
+                            context, matching_lease["id"], new_lease
+                        )
+                    )
             else:
                 lease_results.append(self._blazar_lease_create(context, new_lease))
 
