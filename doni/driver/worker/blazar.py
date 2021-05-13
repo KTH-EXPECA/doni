@@ -359,7 +359,9 @@ class BlazarPhysicalHostWorker(BaseWorker):
             if matching_lease:
                 # Pop each existing lease from the list. Any remaining at the end will be removed.
                 leases_to_check.pop(matching_index)
-                # Update case.
+                # Do not attempt to update reservations; we only support updating
+                # the start and end date.
+                new_lease.pop("reservations", None)
                 if not new_lease.items() <= matching_lease.items():
                     # If new lease is a subset of old_lease, we don't need to update
                     lease_results.append(
