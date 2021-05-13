@@ -7,9 +7,11 @@ import pytest
 from keystoneauth1 import loading as ks_loading
 from oslo_utils import uuidutils
 
-from doni.driver.worker.blazar import (AW_LEASE_PREFIX,
-                                       BlazarPhysicalHostWorker,
-                                       _blazar_lease_request_body)
+from doni.driver.worker.blazar import (
+    AW_LEASE_PREFIX,
+    BlazarPhysicalHostWorker,
+    _blazar_lease_request_body,
+)
 from doni.objects.availability_window import AvailabilityWindow
 from doni.objects.hardware import Hardware
 from doni.tests.unit import utils
@@ -121,10 +123,10 @@ def _stub_blazar_host_new(path, method, json):
         return None
 
 
-def _stub_blazar_host_exist(path, method, json, hw_list=None):
+def _stub_blazar_host_exist(path, method, json, hw_list=None, host_details={}):
     """Blazar stub for case where host where matching UUID exists."""
     if method == "get" and path == f"/os-hosts/{TEST_BLAZAR_HOST_ID}":
-        return utils.MockResponse(200)
+        return utils.MockResponse(200, {"host": host_details})
     elif method == "get" and path == f"/os-hosts":
         return utils.MockResponse(200, _get_hosts_response(hw_list))
     elif method == "put" and path == f"/os-hosts/{TEST_BLAZAR_HOST_ID}":
@@ -185,7 +187,7 @@ def test_new_physical_host(
             return host_response
         raise NotImplementedError("Unexpected request signature")
 
-    blazar_request = get_mocked_blazar(mocker, _stub_blazar_request)
+    get_mocked_blazar(mocker, _stub_blazar_request)
     result = blazar_worker.process(
         context=admin_context,
         hardware=get_fake_hardware(database),
@@ -194,14 +196,13 @@ def test_new_physical_host(
 
     assert isinstance(result, result_type)
     assert result.payload.get("host_created_at") == host_created_at
-    assert blazar_request.call_count == 2
 
 
 @pytest.mark.parametrize(
-    "state_details,result_type,blazar_host_id",
+    "state_details,result_type,blazar_host_id,call_count",
     [
-        ({}, WorkerResult.Defer, TEST_BLAZAR_HOST_ID),
-        (TEST_STATE_DETAILS, WorkerResult.Success, TEST_BLAZAR_HOST_ID),
+        ({}, WorkerResult.Defer, TEST_BLAZAR_HOST_ID, 2),
+        (TEST_STATE_DETAILS, WorkerResult.Success, TEST_BLAZAR_HOST_ID, 3),
     ],
 )
 def test_existing_physical_host(
@@ -212,6 +213,7 @@ def test_existing_physical_host(
     state_details: "dict",
     result_type: "type",
     blazar_host_id: "str",
+    call_count: "int",
 ):
     """Test creation of a duplicate physical host in blazar.
 
@@ -244,6 +246,39 @@ def test_existing_physical_host(
 
     assert isinstance(result, result_type)
     assert result.payload.get("blazar_host_id") == blazar_host_id
+    assert blazar_request.call_count == call_count
+
+
+def test_no_updates_to_host(
+    mocker,
+    admin_context: "RequestContext",
+    blazar_worker: "BlazarPhysicalHostWorker",
+    database: "utils.DBFixtures",
+):
+    hw_to_add = get_fake_hardware(database)
+    hw_list = [hw_to_add]
+
+    def _stub_blazar_request(path, method=None, json=None, **kwargs):
+        host_response = _stub_blazar_host_exist(
+            path,
+            method,
+            json,
+            hw_list,
+            host_details={"uid": TEST_HARDWARE_UUID, "node_name": "fake_name_1"},
+        )
+        if host_response:
+            return host_response
+        raise NotImplementedError("Unexpected request signature")
+
+    blazar_request = get_mocked_blazar(mocker, _stub_blazar_request)
+    result = blazar_worker.process(
+        context=admin_context,
+        hardware=hw_to_add,
+        state_details=TEST_STATE_DETAILS,
+    )
+
+    assert isinstance(result, WorkerResult.Success)
+    # 1 call to check host, 1 call to check leases
     assert blazar_request.call_count == 2
 
 
@@ -323,15 +358,15 @@ def test_create_new_lease(
 
     assert isinstance(result, WorkerResult.Success)
 
-    # 1 call to hosts path, 2 calls to leases
-    assert blazar_request.call_count == 3
+    # 2 call to hosts path, 2 calls to leases
+    assert blazar_request.call_count == 4
 
 
 @pytest.mark.parametrize(
     "lease_changed,result_type,call_count",
     [
-        (False, WorkerResult.Success, 2),
-        (True, WorkerResult.Success, 3),
+        (False, WorkerResult.Success, 3),
+        (True, WorkerResult.Success, 4),
     ],
 )
 def test_update_lease(
@@ -400,9 +435,9 @@ def test_update_lease(
 @pytest.mark.parametrize(
     "lease_prefix,result_type,call_count",
     [
-        (AW_LEASE_PREFIX, WorkerResult.Success, 2),
-        ("foo_bar", WorkerResult.Success, 2),
-        (None, WorkerResult.Success, 3),
+        (AW_LEASE_PREFIX, WorkerResult.Success, 3),
+        ("foo_bar", WorkerResult.Success, 3),
+        (None, WorkerResult.Success, 4),
     ],
 )
 def test_delete_lease(
