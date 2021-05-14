@@ -1,4 +1,5 @@
 from collections import defaultdict
+from re import I
 from typing import TYPE_CHECKING
 
 import jsonpatch
@@ -158,6 +159,8 @@ def apply_jsonpatch(state: dict, patch):
     for field, obj in state.items():
         if isinstance(obj, list):
             doc[field] = [item.as_dict() for item in obj]
+        elif isinstance(obj, dict):
+            doc[field] = {key: item.as_dict() for key, item in obj.items()}
         else:
             doc[field] = obj.as_dict()
 
@@ -202,21 +205,17 @@ def apply_patch_updates(object: "DoniObject", updates: dict):
 
 
 def apply_patch_updates_to_list(
-    objects: "list[DoniObject]",
-    updates: "list[dict]",
+    obj_map: "dict[str,DoniObject]",
+    update_map: "dict[str,dict]",
     obj_class: "Type[DoniObject]" = None,
     context: "RequestContext" = None,
-    primary_key: str = "uuid",
 ) -> "tuple[list[DoniObject],list[DoniObject],list[DoniObject]]":
-    obj_map = {getattr(o, primary_key): o for o in objects}
-
-    for u in updates:
+    for u in update_map.values():
         if not isinstance(u, dict):
             raise exception.Invalid(f"Expected object-like value but got {u}")
 
     # Generate a default primary key if none exists; this will indicate that
     # this update corresponds to what should be a new object.
-    update_map = {u.get(primary_key, uuidutils.generate_uuid()): u for u in updates}
     uniq_objs = set(obj_map.keys())
     uniq_updates = set(update_map.keys())
 

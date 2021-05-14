@@ -182,6 +182,7 @@ def test_enroll_validation(payload, user_auth_headers, client: "FlaskClient"):
 
 
 FAKE_UUID = uuidutils.generate_uuid()
+FAKE_WINDOW_UUID = uuidutils.generate_uuid()
 
 
 @pytest.mark.parametrize(
@@ -290,18 +291,35 @@ def test_update_hardware(
             id="add_valid",
         ),
         pytest.param(
-            [{"path": "/availability/0/start", "op": "replace", "value": "x"}],
+            [
+                {
+                    "path": f"/availability/{FAKE_WINDOW_UUID}/start",
+                    "op": "replace",
+                    "value": "x",
+                }
+            ],
             400,
             id="replace_invalid",
         ),
         pytest.param(
-            [{"path": "/availability/0/not_allowed_field", "op": "add", "value": "x"}],
+            [
+                {
+                    "path": f"/availability/{FAKE_WINDOW_UUID}/not_allowed_field",
+                    "op": "add",
+                    "value": "x",
+                }
+            ],
             400,
             id="add_not_allowed_field",
         ),
         pytest.param(
-            [{"path": "/availability/0", "op": "remove"}],
+            [{"path": f"/availability/{FAKE_WINDOW_UUID}", "op": "remove"}],
             200,
+            id="remove",
+        ),
+        pytest.param(
+            [{"path": f"/availability/non_existent_uuid", "op": "remove"}],
+            400,
             id="remove",
         ),
     ],
@@ -315,7 +333,7 @@ def test_update_availability(
     database: "utils.DBFixtures",
 ):
     database.add_hardware(uuid=FAKE_UUID)
-    database.add_availability_window(hardware_uuid=FAKE_UUID)
+    database.add_availability_window(uuid=FAKE_WINDOW_UUID, hardware_uuid=FAKE_UUID)
     mock_authorize = mocker.patch("doni.api.hardware.authorize")
     res = client.patch(
         f"/v1/hardware/{FAKE_UUID}",
@@ -352,13 +370,13 @@ def test_update_availability_final_state(
         },
         # Update aw2
         {
-            "path": "/availability/1/start",
+            "path": f"/availability/{aw2['uuid']}/start",
             "op": "replace",
             "value": "2021-03-04T00:00:00Z",
         },
         # Delete aw1
         {
-            "path": "/availability/0",
+            "path": f"/availability/{aw1['uuid']}",
             "op": "remove",
         },
     ]

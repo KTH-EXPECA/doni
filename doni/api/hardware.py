@@ -261,7 +261,10 @@ def update(hardware_uuid=None, patch=None):
         )
         # If updating availability windows, pull current values to compute the
         # delta from the patch.
-        state["availability"] = AvailabilityWindow.list_for_hardware(ctx, hardware_uuid)
+        state["availability"] = {
+            aw.uuid: aw
+            for aw in AvailabilityWindow.list_for_hardware(ctx, hardware_uuid)
+        }
 
     patched_state = api_utils.apply_jsonpatch(state, patch)
 
