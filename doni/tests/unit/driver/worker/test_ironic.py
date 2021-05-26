@@ -79,6 +79,8 @@ def get_fake_hardware(database: "utils.DBFixtures"):
             "management_address": "fake-management_address",
             "ipmi_username": "fake-ipmi_username",
             "ipmi_password": "fake-ipmi_password",
+            "ipmi_port": 123,
+            "ipmi_terminal_port": 50123,
             "interfaces": [
                 {"name": "fake-iface1_name", "mac_address": "00:00:00:00:00:00"}
             ],
@@ -115,8 +117,8 @@ def test_ironic_create_node(
                 "ipmi_address": "fake-management_address",
                 "ipmi_username": "fake-ipmi_username",
                 "ipmi_password": "fake-ipmi_password",
-                "ipmi_terminal_port": None,
-                "ipmi_port": None,
+                "ipmi_terminal_port": 50123,
+                "ipmi_port": 123,
             }
             assert json["resource_class"] == "fake-resource_class"
             return utils.MockResponse(
@@ -198,6 +200,8 @@ def test_ironic_update_node(
                         "ipmi_address": "REPLACE-ipmi_address",
                         "ipmi_username": "fake-ipmi_username",
                         "ipmi_password": "fake-ipmi_password",
+                        "ipmi_port": 123,
+                        "ipmi_terminal_port": 50123,
                     },
                     "resource_class": "fake-resource_class",
                 },
@@ -374,6 +378,8 @@ def test_ironic_skips_update_on_empty_patch(
                         "ipmi_address": "fake-management_address",
                         "ipmi_username": "fake-ipmi_username",
                         "ipmi_password": "fake-ipmi_password",
+                        "ipmi_port": 123,
+                        "ipmi_terminal_port": 50123,
                     },
                     "resource_class": "fake-resource_class",
                 },

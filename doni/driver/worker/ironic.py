@@ -179,7 +179,7 @@ class IronicWorker(BaseWorker):
                 "ipmi_username": hw_props.get("ipmi_username"),
                 "ipmi_password": hw_props.get("ipmi_password"),
                 "ipmi_port": hw_props.get("ipmi_port"),
-                "ipmi_terminal_port": hw_props.get("impi_terminal_port"),
+                "ipmi_terminal_port": hw_props.get("ipmi_terminal_port"),
             },
             "resource_class": hw_props.get("baremetal_resource_class"),
         }
