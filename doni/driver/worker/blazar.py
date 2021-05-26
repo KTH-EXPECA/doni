@@ -9,7 +9,7 @@ from oslo_log import log
 from doni.common import args, exception, keystone
 from doni.conf import auth as auth_conf
 from doni.objects.availability_window import AvailabilityWindow
-from doni.worker import BaseWorker, WorkerResult
+from doni.worker import BaseWorker, WorkerField, WorkerResult
 
 if TYPE_CHECKING:
     from doni.common.context import RequestContext
@@ -22,6 +22,15 @@ BLAZAR_API_VERSION = "1"
 BLAZAR_API_MICROVERSION = "1.0"
 BLAZAR_DATE_FORMAT = "%Y-%m-%d %H:%M"
 _BLAZAR_ADAPTER = None
+
+PLACEMENT_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "rack": args.INTEGER,
+        "node": args.INTEGER,
+    },
+    "additionalProperties": False,
+}
 
 AW_LEASE_PREFIX = "availability_window_"
 
@@ -146,6 +155,19 @@ def _search_leases_for_lease_id(existing_leases: dict, new_lease: dict) -> tuple
 
 class BlazarPhysicalHostWorker(BaseWorker):
     """This class handles the synchronization of physical hosts from Doni to Blazar."""
+
+    fields = [
+        WorkerField(
+            "node_type",
+            schema=args.STRING,
+            description=("A high-level classification of the type of node."),
+        ),
+        WorkerField(
+            "placement",
+            schema=PLACEMENT_SCHEMA,
+            description=("Information about the physical placement of the node."),
+        ),
+    ]
 
     opts = []
     opt_group = "blazar"
