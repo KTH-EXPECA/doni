@@ -383,17 +383,18 @@ class BlazarPhysicalHostWorker(BaseWorker):
             if matching_lease:
                 # Pop each existing lease from the list. Any remaining at the end will be removed.
                 leases_to_check.pop(matching_index)
+                lease_for_update = new_lease.copy()
                 # Do not attempt to update reservations; we only support updating
                 # the start and end date.
-                new_lease.pop("reservations", None)
+                lease_for_update.pop("reservations", None)
 
-                if new_lease.items() <= matching_lease.items():
+                if lease_for_update.items() <= matching_lease.items():
                     # If new lease is a subset of old_lease, we don't need to update
                     continue
 
                 matching_lease_start = UTC.localize(parse(matching_lease["start_date"]))
                 if (
-                    matching_lease_start > datetime.now(tz=UTC)
+                    matching_lease_start < datetime.now(tz=UTC)
                     and aw.start > matching_lease_start
                 ):
                     # Special case, updating an availability window to start later,
@@ -407,7 +408,7 @@ class BlazarPhysicalHostWorker(BaseWorker):
                 else:
                     lease_results.append(
                         self._blazar_lease_update(
-                            context, matching_lease["id"], new_lease
+                            context, matching_lease["id"], lease_for_update
                         )
                     )
             else:
