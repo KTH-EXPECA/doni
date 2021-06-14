@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 from dateutil.parser import parse
 from keystoneauth1 import exceptions as kaexception
 from oslo_log import log
+from pytz import UTC
 
 from doni.common import args, exception, keystone
 from doni.conf import auth as auth_conf
@@ -390,9 +391,9 @@ class BlazarPhysicalHostWorker(BaseWorker):
                     # If new lease is a subset of old_lease, we don't need to update
                     continue
 
-                matching_lease_start = parse(matching_lease["start_date"])
+                matching_lease_start = UTC.localize(parse(matching_lease["start_date"]))
                 if (
-                    matching_lease_start > datetime.now()
+                    matching_lease_start > datetime.now(tz=UTC)
                     and aw.start > matching_lease_start
                 ):
                     # Special case, updating an availability window to start later,
