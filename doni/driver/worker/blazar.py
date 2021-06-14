@@ -1,8 +1,9 @@
 """Sync worker to update Blazar from Doni."""
-from functools import wraps
+from datetime import datetime
 from textwrap import shorten
 from typing import TYPE_CHECKING
 
+from dateutil.parser import parse
 from keystoneauth1 import exceptions as kaexception
 from oslo_log import log
 
@@ -323,12 +324,12 @@ class BlazarPhysicalHostWorker(BaseWorker):
             return WorkerResult.Success(result)
 
     def _blazar_lease_delete(
-        self, context: "RequestContext", lease: "dict"
+        self, context: "RequestContext", lease_id: "str"
     ) -> WorkerResult.Base:
-        """Create blazar lease. Return result dict."""
+        """Delete Blazar lease."""
         _call_blazar(
             context,
-            f"/leases/{lease['id']}",
+            f"/leases/{lease_id}",
             method="delete",
         )
         return WorkerResult.Success()
@@ -384,8 +385,25 @@ class BlazarPhysicalHostWorker(BaseWorker):
                 # Do not attempt to update reservations; we only support updating
                 # the start and end date.
                 new_lease.pop("reservations", None)
-                if not new_lease.items() <= matching_lease.items():
+
+                if new_lease.items() <= matching_lease.items():
                     # If new lease is a subset of old_lease, we don't need to update
+                    continue
+
+                matching_lease_start = parse(matching_lease["start_date"])
+                if (
+                    matching_lease_start > datetime.now()
+                    and aw.start > matching_lease_start
+                ):
+                    # Special case, updating an availability window to start later,
+                    # after it has already been entered in to Blazar. This is not
+                    # strictly allowed by Blazar (updating start time after lease begins)
+                    # but we can fake it with a delete/create.
+                    lease_results.append(
+                        self._blazar_lease_delete(context, matching_lease["id"])
+                    )
+                    lease_results.append(self._blazar_lease_create(context, new_lease))
+                else:
                     lease_results.append(
                         self._blazar_lease_update(
                             context, matching_lease["id"], new_lease
@@ -397,7 +415,7 @@ class BlazarPhysicalHostWorker(BaseWorker):
         delete_results = []
         # Delete any leases that are in blazar, but not in the desired availability window.
         for lease in leases_to_check:
-            delete_results.append(self._blazar_lease_delete(context, lease))
+            delete_results.append(self._blazar_lease_delete(context, lease["id"]))
 
         if any(
             isinstance(res, WorkerResult.Defer)
