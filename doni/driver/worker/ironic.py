@@ -304,8 +304,6 @@ def _do_node_update(context, ironic_node, desired_state) -> dict:
 
     existing_state = {key: ironic_node.get(key) for key in desired_state.keys()}
     _normalize_for_patch(existing_state["driver_info"], desired_state["driver_info"])
-    print(existing_state)
-    print(desired_state)
     patch = jsonpatch.make_patch(existing_state, desired_state)
 
     if not patch:
