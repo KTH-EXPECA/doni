@@ -392,10 +392,14 @@ class BlazarPhysicalHostWorker(BaseWorker):
                     # If new lease is a subset of old_lease, we don't need to update
                     continue
 
+                # When comparing availability windows to leases, ensure we are
+                # comparing w/ the same precision as Blazar allows (minutes)
+                aw_start = aw.start.replace(second=0, microsecond=0)
                 matching_lease_start = UTC.localize(parse(matching_lease["start_date"]))
+
                 if (
                     matching_lease_start < datetime.now(tz=UTC)
-                    and aw.start > matching_lease_start
+                    and aw_start > matching_lease_start
                 ):
                     # Special case, updating an availability window to start later,
                     # after it has already been entered in to Blazar. This is not
