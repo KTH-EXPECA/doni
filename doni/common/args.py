@@ -38,6 +38,7 @@ def uuid(name, value) -> "Optional[str]":
 STRING = {"type": "string"}
 INTEGER = {"type": "integer"}
 DATETIME = {"type": "string", "format": "date-time"}
+UUID = {"type": "string", "format": "uuid"}
 PORT_RANGE = {"type": "integer", "minimum": 1, "maximum": 65536}
 HOST_OR_IP = {
     "anyOf": [

@@ -1,4 +1,5 @@
 import time
+from operator import itemgetter
 from typing import TYPE_CHECKING
 from unittest import mock
 
@@ -82,6 +83,8 @@ def get_fake_hardware(database: "utils.DBFixtures", prop_overrides={}):
     properties = {
         "baremetal_driver": "fake-driver",
         "baremetal_resource_class": "fake-resource_class",
+        "baremetal_deploy_kernel_image": "fake-deploy_kernel_image",
+        "baremetal_deploy_ramdisk_image": "fake-deploy_ramdisk_image",
         "management_address": "fake-management_address",
         "ipmi_username": "fake-ipmi_username",
         "ipmi_password": "fake-ipmi_password",
@@ -110,6 +113,19 @@ def get_fake_hardware(database: "utils.DBFixtures", prop_overrides={}):
 
 def ironic_expected_node_body(hardware: "Hardware", overrides={}):
     props = hardware.properties
+
+    driver_info = {
+        "ipmi_address": props["management_address"],
+        "ipmi_username": props["ipmi_username"],
+        "ipmi_password": props["ipmi_password"],
+        "ipmi_port": props["ipmi_port"],
+        "ipmi_terminal_port": props["ipmi_terminal_port"],
+    }
+    if props["baremetal_deploy_kernel_image"]:
+        driver_info["deploy_kernel"] = props["baremetal_deploy_kernel_image"]
+    if props["baremetal_deploy_ramdisk_image"]:
+        driver_info["deploy_ramdisk"] = props["baremetal_deploy_ramdisk_image"]
+
     node_body = {
         "uuid": hardware.uuid,
         "name": hardware.name,
@@ -117,13 +133,7 @@ def ironic_expected_node_body(hardware: "Hardware", overrides={}):
         "maintenance": False,
         "provision_state": "available",
         "driver": props["baremetal_driver"],
-        "driver_info": {
-            "ipmi_address": props["management_address"],
-            "ipmi_username": props["ipmi_username"],
-            "ipmi_password": props["ipmi_password"],
-            "ipmi_port": props["ipmi_port"],
-            "ipmi_terminal_port": props["ipmi_terminal_port"],
-        },
+        "driver_info": driver_info,
         "resource_class": props["baremetal_resource_class"],
     }
 
@@ -186,6 +196,8 @@ def test_ironic_create_node(
                 "ipmi_password": "fake-ipmi_password",
                 "ipmi_terminal_port": 50123,
                 "ipmi_port": 123,
+                "deploy_kernel": "fake-deploy_kernel_image",
+                "deploy_ramdisk": "fake-deploy_ramdisk_image",
             }
             assert json["resource_class"] == "fake-resource_class"
             return utils.MockResponse(
@@ -467,3 +479,90 @@ def test_ironic_port_update_ignores_empty_switch_params(
     # call 1 = get the node
     # call 2 = list ports for update
     assert fake_ironic.call_count == 2
+
+
+def test_ironic_update_remove_optional_fields(
+    mocker,
+    admin_context: "RequestContext",
+    ironic_worker: "IronicWorker",
+    database: "utils.DBFixtures",
+):
+    get_node_count = 0
+    fake_hw = get_fake_hardware(
+        database,
+        {
+            "baremetal_deploy_kernel_image": None,
+            "baremetal_deploy_ramdisk_image": None,
+        },
+    )
+
+    def _fake_ironic_for_update(path, method=None, json=None, **kwargs):
+        if method == "get" and path == f"/nodes/{TEST_HARDWARE_UUID}":
+            nonlocal get_node_count
+            get_node_count += 1
+            if get_node_count == 1:
+                provision_state = "manageable"
+            else:
+                provision_state = "available"
+            return utils.MockResponse(
+                200,
+                ironic_expected_node_body(
+                    fake_hw,
+                    {
+                        "provision_state": provision_state,
+                        "driver_info": {
+                            "deploy_kernel": "REMOVE-deploy_kernel",
+                            "deploy_ramdisk": "REPLACE-deploy_ramdisk",
+                        },
+                    },
+                ),
+            )
+        elif method == "patch" and path == f"/nodes/{TEST_HARDWARE_UUID}":
+            # Validate patch for node properties
+            assert sorted(json, key=itemgetter("path")) == sorted(
+                [
+                    {
+                        "op": "remove",
+                        "path": "/driver_info/deploy_kernel",
+                    },
+                    {
+                        "op": "remove",
+                        "path": "/driver_info/deploy_ramdisk",
+                    },
+                ],
+                key=itemgetter("path"),
+            )
+            return utils.MockResponse(
+                200,
+                {
+                    "uuid": TEST_HARDWARE_UUID,
+                    "created_at": "fake-created_at",
+                },
+            )
+        elif (
+            method == "put" and path == f"/nodes/{TEST_HARDWARE_UUID}/states/provision"
+        ):
+            assert json == {"target": "provide"}
+            return utils.MockResponse(200)
+        elif (
+            method == "get" and path == f"/ports?node={TEST_HARDWARE_UUID}&detail=True"
+        ):
+            return utils.MockResponse(
+                200,
+                {"ports": [ironic_expected_port_body(fake_hw, iface_idx=0)]},
+            )
+        raise NotImplementedError("Unexpected request signature")
+
+    # 'sleep' is used to wait for provision state changes
+    mocker.patch("time.sleep")
+    fake_ironic = get_fake_ironic(mocker, _fake_ironic_for_update)
+
+    result = ironic_worker.process(admin_context, fake_hw)
+
+    assert isinstance(result, WorkerResult.Success)
+    # call 1 = get the node
+    # call 2 = patch the node's properties
+    # call 3 = patch the node back to 'available' state
+    # call 4 = get the node to see if state changed
+    # call 5 = list ports for update
+    assert fake_ironic.call_count == 5

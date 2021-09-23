@@ -112,6 +112,26 @@ class IronicWorker(BaseWorker):
             ),
         ),
         WorkerField(
+            "baremetal_deploy_kernel_image",
+            schema=args.UUID,
+            private=True,
+            description=(
+                "The Glance UUID for the Ironic deployment kernel image to use "
+                "when preparing the host for the user-provided OS image. If "
+                "not set, a default value configured by Ironic will be used."
+            ),
+        ),
+        WorkerField(
+            "baremetal_deploy_ramdisk_image",
+            schema=args.UUID,
+            private=True,
+            description=(
+                "The Glance UUID for the Ironic deployment ramdisk image to "
+                "use when preparing the host for the user-provided OS image. "
+                "If not set, a default value configured by Ironic will be used."
+            ),
+        ),
+        WorkerField(
             "ipmi_username",
             schema=args.STRING,
             private=True,
@@ -180,6 +200,8 @@ class IronicWorker(BaseWorker):
                 "ipmi_password": hw_props.get("ipmi_password"),
                 "ipmi_port": hw_props.get("ipmi_port"),
                 "ipmi_terminal_port": hw_props.get("ipmi_terminal_port"),
+                "deploy_kernel": hw_props.get("baremetal_deploy_kernel_image"),
+                "deploy_ramdisk": hw_props.get("baremetal_deploy_ramdisk_image"),
             },
             "resource_class": hw_props.get("baremetal_resource_class"),
         }
@@ -249,6 +271,12 @@ class IronicWorker(BaseWorker):
                     "properties": {
                         "baremetal_driver": node["driver"],
                         "baremetal_resource_class": node["resource_class"],
+                        "baremetal_deploy_kernel_image": driver_info.get(
+                            "deploy_kernel"
+                        ),
+                        "baremetal_deploy_ramdisk_image": driver_info.get(
+                            "deploy_ramdisk"
+                        ),
                         "management_address": driver_info["ipmi_address"],
                         "interfaces": interfaces,
                         "ipmi_username": driver_info["ipmi_username"],
@@ -276,6 +304,8 @@ def _do_node_update(context, ironic_node, desired_state) -> dict:
 
     existing_state = {key: ironic_node.get(key) for key in desired_state.keys()}
     _normalize_for_patch(existing_state["driver_info"], desired_state["driver_info"])
+    print(existing_state)
+    print(desired_state)
     patch = jsonpatch.make_patch(existing_state, desired_state)
 
     if not patch:
@@ -359,17 +389,18 @@ def _success_payload(node):
 
 
 def _normalize_for_patch(existing, desired):
-    # Copy unknown or empty keys from existing state to avoid overwriting w/ patch
-    # NOTE: this means we cannot null out Ironic properties! But this is
-    # probably the safest thing to do for now.
+    # Copy unknown or empty keys from existing state to avoid overwriting w/ patch.
     for key in existing.keys():
         desired.setdefault(key, existing[key])
-    # Remove keys from each if they evaluate to None; this prevents a desired
-    # 'None' from being sent to Ironic if it already has no value for that key.
+
     for key in list(desired.keys()):
-        if existing.get(key) is None and desired.get(key) is None:
-            existing.pop(key, None)
+        # Treat "None" as explicitly removing
+        if desired.get(key) is None:
             desired.pop(key, None)
+            # Remove keys from each if they evaluate to None; this prevents a desired
+            # 'None' from being sent to Ironic if it already has no value for that key.
+            if existing.get(key) is None:
+                existing.pop(key, None)
 
 
 def _wait_for_provision_state(
