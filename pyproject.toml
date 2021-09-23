@@ -76,10 +76,7 @@ doni = "doni.common.policy:get_oslo_policy_enforcer"
 
 [build-system]
 build-backend = "poetry.core.masonry.api"
-# FIXME(jason): The setuptools constraint can go away when we are on more recent
-# openstack-related packages (like sqlalchemy) -- there is an issue with the
-# Tempita dependency of sqlalchemy-migration: https://github.com/pypa/setuptools/issues/2788
-requires = ["poetry-core>=1.0.0", "setuptools<56.0.0"]
+requires = ["poetry-core>=1.0.0"]
 
 [tool.black]
 # Set line length explicitly.
