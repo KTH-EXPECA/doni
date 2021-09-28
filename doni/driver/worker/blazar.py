@@ -1,5 +1,6 @@
 """Sync worker to update Blazar from Doni."""
 from datetime import datetime
+from re import I
 from textwrap import shorten
 from typing import TYPE_CHECKING
 
@@ -91,13 +92,20 @@ class BlazarWorkerDefer(exception.DoniException):
 def _blazar_host_state(hw: "Hardware") -> dict:
     hw_props = hw.properties
     placement_props = hw_props.get("placement", {})
-    body_dict = {
-        "uid": hw.uuid,
-        "node_name": hw.name,
-        "node_type": hw_props.get("node_type"),
-        "placement.node": placement_props.get("node"),
-        "placement.rack": placement_props.get("rack"),
-    }
+    body_dict = {"uid": hw.uuid, "node_name": hw.name}
+
+    # FIXME(jason): Currently Blazar does not allow deleting extra capabilities,
+    # and setting to None triggers errors in Blazar during create/update.
+    # Until Blazar supports this, ignore nulled out fields. This means that we
+    # cannot unset extra capabilities in Blazar, but that is already a problem
+    # with Blazar's API itself. When that supports deletes, this can be updated.
+    if hw_props.get("node_type"):
+        body_dict["node_type"] = hw_props.get("node_type")
+    if placement_props.get("node"):
+        body_dict["placement.node"] = placement_props.get("node")
+    if placement_props.get("rack"):
+        body_dict["placement.rack"] = placement_props.get("rack")
+
     return body_dict
 
 
