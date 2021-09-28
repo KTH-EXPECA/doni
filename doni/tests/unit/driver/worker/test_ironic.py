@@ -85,6 +85,7 @@ def get_fake_hardware(database: "utils.DBFixtures", prop_overrides={}):
         "baremetal_resource_class": "fake-resource_class",
         "baremetal_deploy_kernel_image": "fake-deploy_kernel_image",
         "baremetal_deploy_ramdisk_image": "fake-deploy_ramdisk_image",
+        "baremetal_capabilities": {"boot_mode": "bios"},
         "management_address": "fake-management_address",
         "ipmi_username": "fake-ipmi_username",
         "ipmi_password": "fake-ipmi_password",
@@ -126,6 +127,10 @@ def ironic_expected_node_body(hardware: "Hardware", overrides={}):
     if props["baremetal_deploy_ramdisk_image"]:
         driver_info["deploy_ramdisk"] = props["baremetal_deploy_ramdisk_image"]
 
+    node_properties = {}
+    if props["baremetal_capabilities"]:
+        node_properties["capabilities"] = props["baremetal_capabilities"]
+
     node_body = {
         "uuid": hardware.uuid,
         "name": hardware.name,
@@ -135,6 +140,7 @@ def ironic_expected_node_body(hardware: "Hardware", overrides={}):
         "driver": props["baremetal_driver"],
         "driver_info": driver_info,
         "resource_class": props["baremetal_resource_class"],
+        "properties": node_properties,
     }
 
     for field, value in overrides.items():

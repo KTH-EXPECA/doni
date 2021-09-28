@@ -37,6 +37,7 @@ def uuid(name, value) -> "Optional[str]":
 # Some JSON schema helpers
 STRING = {"type": "string"}
 INTEGER = {"type": "integer"}
+BOOLEAN = {"type": "boolean"}
 DATETIME = {"type": "string", "format": "date-time"}
 UUID = {"type": "string", "format": "uuid"}
 PORT_RANGE = {"type": "integer", "minimum": 1, "maximum": 65536}

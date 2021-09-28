@@ -34,6 +34,21 @@ IRONIC_STATE_TARGETS = {
     "available": "provide",
 }
 
+IRONIC_NODE_CAPABILITIES_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "boot_option": {
+            "type": "string",
+            "enum": ["local", "netboot", "ramdisk", "kickstart"],
+        },
+        "boot_mode": {"type": "string", "enum": ["bios", "uefi"]},
+        "secure_boot": {"type": "string", "enum": ["true", "false"]},
+        "trusted_boot": {"type": "string", "enum": ["true", "false"]},
+        "disk_label": {"type": "string", "enum": ["msdos", "gpt"]},
+    },
+    "additionalProperties": False,
+}
+
 MASKED_VALUE_REGEX = re.compile("^\*+$")
 
 
@@ -132,6 +147,16 @@ class IronicWorker(BaseWorker):
             ),
         ),
         WorkerField(
+            "baremetal_capabilities",
+            schema=IRONIC_NODE_CAPABILITIES_SCHEMA,
+            private=True,
+            description=(
+                "Additional Ironic capabilities to set on the node. See "
+                "https://docs.openstack.org/ironic/latest/_modules/ironic/drivers/modules/deploy_utils.html "
+                "for a list of supported capabilities in SUPPORTED_CAPABILITIES."
+            ),
+        ),
+        WorkerField(
             "ipmi_username",
             schema=args.STRING,
             private=True,
@@ -204,6 +229,9 @@ class IronicWorker(BaseWorker):
                 "deploy_ramdisk": hw_props.get("baremetal_deploy_ramdisk_image"),
             },
             "resource_class": hw_props.get("baremetal_resource_class"),
+            "properties": {
+                "capabilities": hw_props.get("baremetal_capabilities"),
+            },
         }
         desired_interfaces = hw_props.get("interfaces", [])
 
@@ -238,6 +266,7 @@ class IronicWorker(BaseWorker):
         for node in _call_ironic(context, "/nodes?detail=True")["nodes"]:
             uuid = node["uuid"]
             driver_info = node["driver_info"]
+            properties = node["properties"]
 
             if MASKED_VALUE_REGEX.match(driver_info.get("ipmi_password", "")):
                 LOG.warning(
@@ -277,6 +306,7 @@ class IronicWorker(BaseWorker):
                         "baremetal_deploy_ramdisk_image": driver_info.get(
                             "deploy_ramdisk"
                         ),
+                        "baremetal_capabilities": properties.get("capabilities"),
                         "management_address": driver_info["ipmi_address"],
                         "interfaces": interfaces,
                         "ipmi_username": driver_info["ipmi_username"],
@@ -304,6 +334,9 @@ def _do_node_update(context, ironic_node, desired_state) -> dict:
 
     existing_state = {key: ironic_node.get(key) for key in desired_state.keys()}
     _normalize_for_patch(existing_state["driver_info"], desired_state["driver_info"])
+    _normalize_for_patch(
+        existing_state["properties"] or {}, desired_state["properties"] or {}
+    )
     patch = jsonpatch.make_patch(existing_state, desired_state)
 
     if not patch:
