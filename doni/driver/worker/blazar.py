@@ -101,6 +101,8 @@ def _blazar_host_state(hw: "Hardware") -> dict:
     # with Blazar's API itself. When that supports deletes, this can be updated.
     if hw_props.get("node_type"):
         body_dict["node_type"] = hw_props.get("node_type")
+    if hw_props.get("cpu_arch"):
+        body_dict["cpu_arch"] = hw_props.get("cpu_arch")
     if placement_props.get("node"):
         body_dict["placement.node"] = placement_props.get("node")
     if placement_props.get("rack"):

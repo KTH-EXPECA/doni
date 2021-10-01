@@ -44,6 +44,13 @@ class Baremetal(HardwareType):
             required=True,
             description=("A list of network interfaces installed on the node."),
         ),
+        WorkerField(
+            "cpu_arch",
+            schema=args.CPU_ARCH,
+            required=True,
+            default="x86_64",
+            description=("The CPU architecture."),
+        ),
     ]
 
 

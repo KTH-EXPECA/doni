@@ -231,6 +231,7 @@ class IronicWorker(BaseWorker):
             "resource_class": hw_props.get("baremetal_resource_class"),
             "properties": {
                 "capabilities": hw_props.get("baremetal_capabilities"),
+                "cpu_arch": hw_props.get("cpu_arch"),
             },
         }
         desired_interfaces = hw_props.get("interfaces", [])
@@ -307,6 +308,7 @@ class IronicWorker(BaseWorker):
                             "deploy_ramdisk"
                         ),
                         "baremetal_capabilities": properties.get("capabilities"),
+                        "cpu_arch": properties.get("cpu_arch"),
                         "management_address": driver_info["ipmi_address"],
                         "interfaces": interfaces,
                         "ipmi_username": driver_info["ipmi_username"],

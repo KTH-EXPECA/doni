@@ -48,6 +48,7 @@ HOST_OR_IP = {
         {"type": "string", "format": "ipv6"},
     ]
 }
+CPU_ARCH = {"type": "string", "enum": ["x86_64", "aarch64"]}
 NETWORK_DEVICE = {
     "type": "object",
     "properties": {
