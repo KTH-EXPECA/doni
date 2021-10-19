@@ -362,8 +362,8 @@ def _do_node_update(context, ironic_node, desired_state) -> dict:
 
 def _do_port_updates(context, ironic_uuid, interfaces) -> dict:
     ports = _call_ironic(context, f"/ports?node={ironic_uuid}&detail=True")["ports"]
-    ports_by_mac = {p["address"]: p for p in ports}
-    ifaces_by_mac = {i["mac_address"]: i for i in interfaces}
+    ports_by_mac = {p["address"].lower(): p for p in ports}
+    ifaces_by_mac = {i["mac_address"].lower(): i for i in interfaces}
     existing = set(ports_by_mac.keys())
     desired = set(ifaces_by_mac.keys())
 
