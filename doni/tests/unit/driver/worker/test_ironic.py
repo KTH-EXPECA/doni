@@ -99,7 +99,15 @@ def get_fake_hardware(database: "utils.DBFixtures", prop_overrides={}):
                 "switch_id": "fake-switch_id",
                 "switch_port_id": "fake-switch_port_id",
                 "switch_info": "fake-switch_info",
-            }
+                "pxe_enabled": True,
+                "enabled": True,
+            },
+            {
+                "name": "fake-iface2_name",
+                "mac_address": "00:00:00:00:00:01",
+                "pxe_enabled": False,
+                "enabled": False,
+            },
         ],
     }
     properties = _apply_overrides(properties, prop_overrides)
@@ -170,6 +178,7 @@ def ironic_expected_port_body(hardware: "Hardware", iface_idx=None, overrides={}
         "address": hw_iface["mac_address"],
         "extra": {"name": hw_iface["name"]},
         "local_link_connection": local_link_connection,
+        "pxe_enabled": hw_iface.get("pxe_enabled", True),
     }
     return port_body
 
@@ -236,7 +245,7 @@ def test_ironic_create_node(
                 "switch_info": "fake-switch_info",
             }
             return utils.MockResponse(200, {"uuid": "fake-port_uuid"})
-        raise NotImplementedError("Unexpected request signature")
+        raise NotImplementedError(f"Unexpected request signature: {method} {path}")
 
     # 'sleep' is used to wait for provision state changes
     mocker.patch("time.sleep")
@@ -313,7 +322,7 @@ def test_ironic_update_node(
                 200,
                 {"ports": [ironic_expected_port_body(fake_hw, iface_idx=0)]},
             )
-        raise NotImplementedError("Unexpected request signature")
+        raise NotImplementedError(f"Unexpected request signature: {method} {path}")
 
     # 'sleep' is used to wait for provision state changes
     mocker.patch("time.sleep")
@@ -348,7 +357,7 @@ def test_ironic_update_defer_on_maintenance(
                     "maintenance": True,
                 },
             )
-        raise NotImplementedError("Unexpected request signature")
+        raise NotImplementedError(f"Unexpected request signature: {method} {path}")
 
     fake_ironic = get_fake_ironic(mocker, _fake_ironic_for_maintenance)
 
@@ -383,7 +392,7 @@ def test_ironic_provision_state_timeout(
         ):
             assert json == {"target": "manage"}
             return utils.MockResponse(200)
-        raise NotImplementedError("Unexpected request signature")
+        raise NotImplementedError(f"Unexpected request signature: {method} {path}")
 
     count = int(time.perf_counter())
 
@@ -416,7 +425,7 @@ def test_ironic_update_defer_on_locked(
     def _fake_ironic_for_locked(path, method=None, json=None, **kwargs):
         if method == "get" and path == f"/nodes/{TEST_HARDWARE_UUID}":
             return utils.MockResponse(409)
-        raise NotImplementedError("Unexpected request signature")
+        raise NotImplementedError(f"Unexpected request signature: {method} {path}")
 
     fake_ironic = get_fake_ironic(mocker, _fake_ironic_for_locked)
 
@@ -446,7 +455,7 @@ def test_ironic_skips_update_on_empty_patch(
                 200,
                 {"ports": [ironic_expected_port_body(fake_hw, iface_idx=0)]},
             )
-        raise NotImplementedError("Unexpected request signature")
+        raise NotImplementedError(f"Unexpected request signature: {method} {path}")
 
     fake_ironic = get_fake_ironic(mocker, _fake_ironic_for_noop_update)
 
@@ -478,7 +487,7 @@ def test_ironic_port_update_ignores_empty_switch_params(
                 200,
                 {"ports": [ironic_expected_port_body(fake_hw, iface_idx=0)]},
             )
-        raise NotImplementedError("Unexpected request signature")
+        raise NotImplementedError(f"Unexpected request signature: {method} {path}")
 
     fake_ironic = get_fake_ironic(mocker, _fake_ironic_for_update)
 
@@ -560,7 +569,7 @@ def test_ironic_update_remove_optional_fields(
                 200,
                 {"ports": [ironic_expected_port_body(fake_hw, iface_idx=0)]},
             )
-        raise NotImplementedError("Unexpected request signature")
+        raise NotImplementedError(f"Unexpected request signature: {method} {path}")
 
     # 'sleep' is used to wait for provision state changes
     mocker.patch("time.sleep")

@@ -185,7 +185,7 @@ def test_new_physical_host(
         host_response = _stub_blazar_host_new(path, method, json)
         if host_response:
             return host_response
-        raise NotImplementedError("Unexpected request signature")
+        raise NotImplementedError(f"Unexpected request signature: {method} {path}")
 
     get_mocked_blazar(mocker, _stub_blazar_request)
     result = blazar_worker.process(
@@ -235,7 +235,7 @@ def test_existing_physical_host(
         host_response = _stub_blazar_host_exist(path, method, json, hw_list)
         if host_response:
             return host_response
-        raise NotImplementedError("Unexpected request signature")
+        raise NotImplementedError(f"Unexpected request signature: {method} {path}")
 
     blazar_request = get_mocked_blazar(mocker, _stub_blazar_request)
     result = blazar_worker.process(
@@ -268,7 +268,7 @@ def test_no_updates_to_host(
         )
         if host_response:
             return host_response
-        raise NotImplementedError("Unexpected request signature")
+        raise NotImplementedError(f"Unexpected request signature: {method} {path}")
 
     blazar_request = get_mocked_blazar(mocker, _stub_blazar_request)
     result = blazar_worker.process(
@@ -346,7 +346,7 @@ def test_create_new_lease(
         if host_response:
             return host_response
 
-        raise NotImplementedError("Unexpected request signature")
+        raise NotImplementedError(f"Unexpected request signature: {method} {path}")
 
     blazar_request = get_mocked_blazar(mocker, _stub_blazar_request)
     result = blazar_worker.process(
@@ -416,7 +416,7 @@ def test_update_lease(
         if host_response:
             return host_response
 
-        raise NotImplementedError("Unexpected request signature")
+        raise NotImplementedError(f"Unexpected request signature: {method} {path}")
 
     blazar_request = get_mocked_blazar(mocker, _stub_blazar_request)
     result = blazar_worker.process(
@@ -490,7 +490,7 @@ def test_delete_lease(
         if host_response:
             return host_response
 
-        raise NotImplementedError("Unexpected request signature")
+        raise NotImplementedError(f"Unexpected request signature: {method} {path}")
 
     blazar_request = get_mocked_blazar(mocker, _stub_blazar_request)
     result = blazar_worker.process(

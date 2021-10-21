@@ -53,6 +53,7 @@ NETWORK_DEVICE = {
     "type": "object",
     "properties": {
         "name": STRING,
+        "enabled": BOOLEAN,
         # There is no mac_address format in jsonschema yet[1]
         # [1]: https://github.com/json-schema-org/json-schema-spec/issues/540
         "mac_address": STRING,
@@ -61,6 +62,7 @@ NETWORK_DEVICE = {
         "switch_id": STRING,
         "switch_port_id": STRING,
         "switch_info": STRING,
+        "pxe_enabled": BOOLEAN,
     },
     "required": ["name", "mac_address"],
     "additionalProperties": False,

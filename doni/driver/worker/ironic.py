@@ -365,7 +365,8 @@ def _do_port_updates(context, ironic_uuid, interfaces) -> dict:
     ports_by_mac = {p["address"].lower(): p for p in ports}
     ifaces_by_mac = {i["mac_address"].lower(): i for i in interfaces}
     existing = set(ports_by_mac.keys())
-    desired = set(ifaces_by_mac.keys())
+    # Ignore interfaces not marked as enabled
+    desired = set(mac for mac, iface in ifaces_by_mac.items() if iface.get("enabled", True))
 
     def _desired_port_state(iface):
         body = {
@@ -373,6 +374,7 @@ def _do_port_updates(context, ironic_uuid, interfaces) -> dict:
                 "name": iface.get("name"),
             },
             "local_link_connection": {},
+            "pxe_enabled": iface.get("pxe_enabled", True),
         }
 
         if iface.get("switch_id") and iface.get("switch_port_id"):
@@ -393,7 +395,7 @@ def _do_port_updates(context, ironic_uuid, interfaces) -> dict:
 
     for iface_to_update in desired & existing:
         port = ports_by_mac[iface_to_update]
-        existing_state = {k: port[k] for k in ["extra", "local_link_connection"]}
+        existing_state = {k: port[k] for k in ["extra", "local_link_connection", "pxe_enabled"]}
         desired_state = _desired_port_state(ifaces_by_mac[iface_to_update])
         _normalize_for_patch(existing_state["extra"], desired_state["extra"])
         _normalize_for_patch(
