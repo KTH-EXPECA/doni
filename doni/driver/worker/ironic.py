@@ -215,6 +215,14 @@ class IronicWorker(BaseWorker):
         state_details: "dict" = None,
     ) -> "WorkerResult.Base":
         hw_props = hardware.properties
+
+        capabilities_string = ",".join(
+            [
+                f"{key}:{value}"
+                for key, value in hw_props.get("baremetal_capabilities").items()
+            ]
+        )
+
         desired_state = {
             "uuid": hardware.uuid,
             "name": hardware.name,
@@ -230,7 +238,7 @@ class IronicWorker(BaseWorker):
             },
             "resource_class": hw_props.get("baremetal_resource_class"),
             "properties": {
-                "capabilities": hw_props.get("baremetal_capabilities"),
+                "capabilities": capabilities_string,
                 "cpu_arch": hw_props.get("cpu_arch"),
             },
         }
