@@ -152,6 +152,20 @@ six = ">=1.10.0"
 wrapt = ">=1.7.0"
 
 [[package]]
+name = "debtcollector"
+version = "2.3.0"
+description = "A collection of Python deprecation patterns and strategies that help you collect your technical debt in a non-destructive manner."
+category = "main"
+optional = false
+python-versions = ">=3.6"
+
+[package.dependencies]
+importlib-metadata = {version = ">=1.7.0", markers = "python_version < \"3.8\""}
+pbr = ">=2.0.0,<2.1.0 || >2.1.0"
+six = ">=1.10.0"
+wrapt = ">=1.7.0"
+
+[[package]]
 name = "decorator"
 version = "5.1.0"
 description = "Decorators for Humans"
@@ -324,6 +338,21 @@ python-versions = ">=3.5"
 
 [[package]]
 name = "importlib-metadata"
+version = "1.7.0"
+description = "Read metadata from Python packages"
+category = "main"
+optional = false
+python-versions = "!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*,>=2.7"
+
+[package.dependencies]
+zipp = ">=0.5"
+
+[package.extras]
+docs = ["sphinx", "rst.linker"]
+testing = ["packaging", "pep517", "importlib-resources (>=1.3)"]
+
+[[package]]
+name = "importlib-metadata"
 version = "0.20"
 description = "Read metadata from Python packages"
 category = "main"
@@ -336,21 +365,6 @@ zipp = ">=0.5"
 [package.extras]
 docs = ["sphinx", "rst.linker"]
 testing = ["importlib-resources"]
-
-[[package]]
-name = "importlib-metadata"
-version = "0.23"
-description = "Read metadata from Python packages"
-category = "main"
-optional = false
-python-versions = ">=2.7,!=3.0,!=3.1,!=3.2,!=3.3"
-
-[package.dependencies]
-zipp = ">=0.5"
-
-[package.extras]
-docs = ["sphinx", "rst.linker"]
-testing = ["packaging", "importlib-resources"]
 
 [[package]]
 name = "importlib-resources"
@@ -1588,7 +1602,7 @@ testing = ["pytest (>=4.6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytes
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.6"
-content-hash = "2330ae3596aa4d31060fc5e892bb9593a936468a6027ab3cbe8738c70bb7ccf4"
+content-hash = "ce38804a7ff47546a3738dd444c257f8c7685348deb5e90262c4b502bbb1eb95"
 
 [metadata.files]
 alembic = [
@@ -1645,6 +1659,8 @@ dataclasses = [
 debtcollector = [
     {file = "debtcollector-2.2.0-py3-none-any.whl", hash = "sha256:34663e5de257c67bf38827cfbea259c4d4ad27eba6b5a9d9242cb54076bfb4ad"},
     {file = "debtcollector-2.2.0.tar.gz", hash = "sha256:787981f4d235841bf6eb0467e23057fb1ac7ee24047c32028a8498b9128b6829"},
+    {file = "debtcollector-2.3.0-py3-none-any.whl", hash = "sha256:6f1fae29c9091a6f7e8f68da7ec17f3167f98abac13c019968e144108f381b7e"},
+    {file = "debtcollector-2.3.0.tar.gz", hash = "sha256:c7a9fac814ab5904e23905516b18356cc907e7d27c05da58d37103f001967846"},
 ]
 decorator = [
     {file = "decorator-5.1.0-py3-none-any.whl", hash = "sha256:7b12e7c3c6ab203a29e157335e9122cb03de9ab7264b137594103fd4a683b374"},
@@ -1749,10 +1765,10 @@ idna = [
     {file = "idna-3.3.tar.gz", hash = "sha256:9d643ff0a55b762d5cdb124b8eaa99c66322e2157b69160bc32796e824360e6d"},
 ]
 importlib-metadata = [
+    {file = "importlib_metadata-1.7.0-py2.py3-none-any.whl", hash = "sha256:dc15b2969b4ce36305c51eebe62d418ac7791e9a157911d58bfb1f9ccd8e2070"},
+    {file = "importlib_metadata-1.7.0.tar.gz", hash = "sha256:90bb658cdbbf6d1735b6341ce708fc7024a3e14e99ffdc5783edea9f9b077f83"},
     {file = "importlib_metadata-0.20-py2.py3-none-any.whl", hash = "sha256:9ff1b1c5a354142de080b8a4e9803e5d0d59283c93aed808617c787d16768375"},
     {file = "importlib_metadata-0.20.tar.gz", hash = "sha256:b7143592e374e50584564794fcb8aaf00a23025f9db866627f89a21491847a8d"},
-    {file = "importlib_metadata-0.23-py2.py3-none-any.whl", hash = "sha256:d5f18a79777f3aa179c145737780282e27b508fc8fd688cb17c7a813e8bd39af"},
-    {file = "importlib_metadata-0.23.tar.gz", hash = "sha256:aa18d7378b00b40847790e7c27e11673d7fed219354109d0e7b9e5b25dc3ad26"},
 ]
 importlib-resources = [
     {file = "importlib_resources-5.4.0-py3-none-any.whl", hash = "sha256:33a95faed5fc19b4bc16b29a6eeae248a3fe69dd55d4d229d2b480e23eeaad45"},

@@ -11,7 +11,8 @@ RUN pip wheel \
   --wheel-dir /custom-wheels \
   netifaces \
   yappi \
-  psutil
+  psutil \
+  typed-ast
 
 FROM python:${python_version}-slim as base
 
