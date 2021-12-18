@@ -18,4 +18,4 @@ jobs:
           workflow: ci
           repo: ChameleonCloud/kolla-containers
           token: ${{ secrets.REPO_ACCESS_TOKEN }}
-          inputs: '{"kolla_build_profile": "doni", "push": "yes", "ref": "${{ github.ref }}", "sha": "${{ github.sha }}",}'
+          inputs: '{ "kolla_build_profile": "doni", "push": yes }'
