@@ -92,4 +92,4 @@ class K8sWorker(BaseWorker):
         else:
             payload["num_labels"] = 0
 
-        return WorkerResult.Success()
+        return WorkerResult.Success(payload)
