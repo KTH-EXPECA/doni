@@ -73,7 +73,7 @@ balena = "doni.driver.worker.balena:BalenaWorker"
 fake-worker = "doni.driver.worker.fake:FakeWorker"
 ironic = "doni.driver.worker.ironic:IronicWorker"
 tunelo = "doni.driver.worker.tunelo:TuneloWorker"
-k8s = "doni.driver.worker.k8s.K8sWorker"
+k8s = "doni.driver.worker.k8s:K8sWorker"
 
 [tool.poetry.plugins."oslo.config.opts"]
 doni = "doni.conf.opts:list_opts"
