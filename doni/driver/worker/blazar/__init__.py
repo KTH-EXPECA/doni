@@ -196,9 +196,9 @@ class BaseBlazarWorker(BaseWorker):
                 if uuidutils.is_uuid_like(project_ref):
                     deref_projects.append(project_ref)
                 else:
-                    matching = call_keystone(
-                        context, f"/v3/projects?name={project_ref}"
-                    )["projects"]
+                    matching = call_keystone(context, f"/projects?name={project_ref}")[
+                        "projects"
+                    ]
                     if matching:
                         deref_projects.append(matching[0]["id"])
                     else:
