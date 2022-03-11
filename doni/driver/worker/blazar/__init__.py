@@ -101,8 +101,17 @@ class BaseBlazarWorker(BaseWorker):
     def register_opts(self, conf):
         super().register_opts(conf)
         auth_conf.register_auth_opts(conf, self.opt_group, service_type="reservation")
+        # Also register the keystone_authtoken group explicitly. The worker does not
+        # initialize keystonemiddleware (b/c it doesn't use it), which normally would
+        # be registering these options for us.
+        auth_conf.register_auth_opts(
+            conf, "keystone_authtoken", service_type="identity"
+        )
 
     def list_opts(self):
+        # We don't need to add keystone opts here; `add_auth_opts` just pulls common
+        # auth options out to the flattened option list. This is only used by
+        # oslo-config-generator.
         return auth_conf.add_auth_opts(super().list_opts(), service_type="reservation")
 
     @classmethod

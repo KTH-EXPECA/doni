@@ -66,11 +66,9 @@ class K8sWorker(BaseWorker):
 
         expected_labels = CONF.k8s.expected_labels.get(idx)
         # Expand config structure from "key1=value1,key2=value2" to dict
-        expected_labels = {
-            key: value
-            for label_spec in (expected_labels.split("|") if expected_labels else [])
-            for key, value in label_spec.split("=")
-        }
+        for label_spec in expected_labels.split("|") if expected_labels else []:
+            label, value = label_spec.split("=")
+            expected_labels[label] = value
 
         payload = {}
         if expected_labels:
