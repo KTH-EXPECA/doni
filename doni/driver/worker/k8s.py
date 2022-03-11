@@ -65,22 +65,16 @@ class K8sWorker(BaseWorker):
             raise ValueError(f"Missing {idx_property} on hardware {hardware.uuid}")
 
         expected_labels = CONF.k8s.expected_labels.get(idx)
+        labels = {}
         # Expand config structure from "key1=value1,key2=value2" to dict
         for label_spec in expected_labels.split("|") if expected_labels else []:
             label, value = label_spec.split("=")
-            expected_labels[label] = value
+            labels[label] = value
 
         payload = {}
-        if expected_labels:
+        if labels:
             try:
-                core_v1.patch_node(
-                    hardware.name,
-                    {
-                        "metadata": {
-                            "labels": expected_labels,
-                        }
-                    },
-                )
+                core_v1.patch_node(hardware.name, {"metadata": {"labels": labels}})
             except K8sApiException as exc:
                 if exc.status == 404:
                     return WorkerResult.Defer(reason="No matching k8s node found")
