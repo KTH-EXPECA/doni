@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 
 from dateutil.parser import parse
+from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import uuidutils
 from pytz import UTC
@@ -104,9 +105,13 @@ class BaseBlazarWorker(BaseWorker):
         # Also register the keystone_authtoken group explicitly. The worker does not
         # initialize keystonemiddleware (b/c it doesn't use it), which normally would
         # be registering these options for us.
-        auth_conf.register_auth_opts(
-            conf, "keystone_authtoken", service_type="identity"
-        )
+        try:
+            auth_conf.register_auth_opts(
+                conf, "keystone_authtoken", service_type="identity"
+            )
+        except cfg.DuplicateOptError:
+            # Options already registered (happens when the API loads this worker itself)
+            pass
 
     def list_opts(self):
         # We don't need to add keystone opts here; `add_auth_opts` just pulls common
