@@ -168,6 +168,10 @@ class BalenaWorker(BaseWorker):
             # Balena will have auto-assigned a device name, change to user-specified
             balena.models.device.rename(device_id, hardware.name)
             LOG.info(f"Registered new device for {hardware.uuid}")
+            # Perform one additional fetch; when the device is returned from the
+            # register endpoint, it is missing the belongs_to__application field,
+            # which we use later. Probably this is a bug in openBalena
+            device = balena.models.device.get(device_id)
 
         return device
 
