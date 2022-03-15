@@ -80,7 +80,7 @@ class K8sWorker(BaseWorker):
                     return WorkerResult.Defer(reason="No matching k8s node found")
                 else:
                     raise
-            payload["num_labels"] = len(expected_labels)
+            payload["num_labels"] = len(labels)
         else:
             payload["num_labels"] = 0
 
