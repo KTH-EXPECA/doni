@@ -97,7 +97,12 @@ class TuneloWorker(BaseWorker):
                     else:
                         # Recreate if representation differs
                         self._call_tunelo(
-                            context, f"/channels/{channel_uuid}", method="delete"
+                            context,
+                            f"/channels/{channel_uuid}",
+                            method="delete",
+                            # channel may have been deleted w/o Doni's knowledge, but
+                            # this is OK, just ignore.
+                            allowed_error_codes=[404],
                         )
                         LOG.info(
                             f"Channel {channel_name} changed, will re-create "
