@@ -44,6 +44,8 @@ class WorkerManager(object):
         self.host = host
         self._started = False
         self._shutdown = None
+        self._periodic_tasks = self._periodic_tasks_worker = None
+        self._executor = None
         self.dbapi = None
 
     def start(self, admin_context=None):
@@ -274,10 +276,15 @@ class WorkerManager(object):
         if self._shutdown:
             return
         self._shutdown = True
+
         # Waiting here to give workers the chance to finish.
-        self._periodic_tasks.stop()
-        self._periodic_tasks.wait()
-        self._executor.shutdown(wait=True)
+        if self._periodic_tasks:
+            self._periodic_tasks.stop()
+            self._periodic_tasks.wait()
+        if self._periodic_tasks_worker:
+            waiters.wait_for_all([self._periodic_tasks_worker])
+        if self._executor:
+            self._executor.shutdown(wait=True)
 
         self._started = False
 
