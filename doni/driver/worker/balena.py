@@ -177,7 +177,7 @@ class BalenaWorker(BaseWorker):
 
     def _delete_device(self, hardware: "Hardware"):
         balena = _get_balena_sdk()
-        balena.models.device.remove(self._to_device_id(hardware))
+        balena.models.device.remove(self._to_device_id(hardware.uuid))
         LOG.info(f"Deleted device for {hardware.uuid}")
 
     def _to_device_id(self, hardware_uuid: str):
