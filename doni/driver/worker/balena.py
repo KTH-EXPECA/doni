@@ -173,7 +173,7 @@ class BalenaWorker(BaseWorker):
             if device["device_name"] != hardware.name:
                 balena.models.device.rename(device_id, hardware.name)
                 LOG.info(f"Updated device name for {hardware.uuid}")
-            if device["is_of__device_type"]["_id"] != device_types[machine_name]:
+            if device["is_of__device_type"]["__id"] != device_types[machine_name]:
                 set_device_type()
                 LOG.info(f"Updated device type for {hardware.uuid}")
         except DeviceNotFound:
