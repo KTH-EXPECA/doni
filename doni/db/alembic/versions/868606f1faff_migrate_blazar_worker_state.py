@@ -5,6 +5,8 @@ Revises: f42680f49a77
 Create Date: 2022-02-04 15:34:42.594220
 
 """
+import json
+
 from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.ext.automap import automap_base
@@ -39,14 +41,14 @@ def upgrade():
     for wt in session.query(WorkerTask).filter(
         WorkerTask.worker_type == "blazar.physical_host"
     ):
-        state_details = wt.state_details
+        state_details = json.loads(wt.state_details)
         if "blazar_host_id" in state_details:
             state_details["blazar_resource_id"] = state_details["blazar_host_id"]
             del state_details["blazar_host_id"]
         if "host_created_at" in state_details:
             state_details["resource_created_at"] = state_details["host_created_at"]
             del state_details["host_created_at"]
-        wt.state_details = state_details
+        wt.state_details = json.dumps(state_details)
         session.add(wt)
     session.commit()
 
@@ -59,14 +61,14 @@ def downgrade():
 
     for wt in session.query(WorkerTask).filter(
         WorkerTask.worker_type == "blazar.physical_host"
-    ):  # type: worker_task
-        state_details = wt.state_details
+    ):
+        state_details = json.loads(wt.state_details)
         if "blazar_resource_id" in state_details:
             state_details["blazar_host_id"] = state_details["blazar_resource_id"]
             del state_details["blazar_resource_id"]
         if "resource_created_at" in state_details:
             state_details["host_created_at"] = state_details["resource_created_at"]
             del state_details["resource_created_at"]
-        wt.state_details = state_details
+        wt.state_details = json.dumps(state_details)
         session.add(wt)
     session.commit()
