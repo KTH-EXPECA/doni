@@ -19,13 +19,22 @@ depends_on = None
 Base = automap_base()
 
 
+def _worker_task_model(bind):
+    try:
+        # SQLAlchemy >=1.4.0
+        Base.prepare(autoload_with=bind)
+    except:
+        # SQLAlchemy <1.4.0
+        Base.prepare(bind, reflect=True)
+    return Base.classes.worker_task
+
+
 def upgrade():
     """Update 'host' blazar worker fields to generic 'resource' naming."""
     bind = op.get_bind()
     session = sa.orm.Session(bind=bind)
 
-    Base.prepare(autoload_with=bind)
-    WorkerTask = Base.classes.worker_task
+    WorkerTask = _worker_task_model(bind)
 
     for wt in session.query(WorkerTask).filter(
         WorkerTask.worker_type == "blazar.physical_host"
@@ -46,8 +55,7 @@ def downgrade():
     bind = op.get_bind()
     session = sa.orm.Session(bind=bind)
 
-    Base.prepare(autoload_with=bind)
-    WorkerTask = Base.classes.worker_task
+    WorkerTask = _worker_task_model(bind)
 
     for wt in session.query(WorkerTask).filter(
         WorkerTask.worker_type == "blazar.physical_host"
