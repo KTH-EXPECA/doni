@@ -6,15 +6,15 @@ from doni.worker import WorkerField
 # Full list of names:
 # https://www.balena.io/docs/reference/base-images/devicetypes/
 SUPPORTED_MACHINE_NAMES = [
-    "sdr-host",
+    "k8s-worker",
     "jetson-nano",
     "jetson-xavier-nx-emmc",
     "raspberrypi3-64",
     "raspberrypi4-64",
 ]
 MACHINE_METADATA = {
-    "sdr-host": {
-        "full_name": "Networked USRP Software Defined Radio Host",
+    "k8s-worker": {
+        "full_name": "K8S Worker Node",
         "vendor": "KTH Royal Institue of Technology",
         "model": "Ubuntu 20.04.5 Virtual Machine",
     },
