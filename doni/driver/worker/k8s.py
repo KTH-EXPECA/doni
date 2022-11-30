@@ -135,7 +135,7 @@ class K8sWorker(BaseWorker):
                     )
                 except Exception as e:
                     LOG.error(e)
-                    return WorkerResult.Defer(reason="k8s create br_interface network-attachment-definition did not work")
+                    return WorkerResult.Defer(reason="k8s create bm_interface network-attachment-definition did not work")
 
         return WorkerResult.Success(payload)
 
