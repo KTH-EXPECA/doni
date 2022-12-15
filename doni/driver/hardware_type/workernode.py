@@ -8,6 +8,7 @@ BM_INTERFACES_SCHEMA = args.array(
         "type": "object",
         "properties": {
             "name": args.STRING,
+            "mtu": args.INTEGER,
             "mac_addr": args.STRING,
             "local_link_information": args.array(
                 {
@@ -18,7 +19,7 @@ BM_INTERFACES_SCHEMA = args.array(
                 min_items=1,
             ),
         },
-        "required": ["name", "local_link_information"],
+        "required": ["name", "local_link_information", "mtu"],
         "additionalProperties": False,
     },
     min_items=0,

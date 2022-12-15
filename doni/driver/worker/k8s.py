@@ -115,13 +115,14 @@ class K8sWorker(BaseWorker):
                             \"plugins\": [{{\
                                 \"type\": \"macvlan\",\
                                 \"master\": \"{1}\",\
+                                \"mtu\": \"{2}\",\
                                 \"mode\": \"bridge\",\
                                 \"ipam\": {{}}\
                             }},{{\
                                 \"capabilities\":{{ \"mac\": true}},\
                                 \"type\": \"tuning\"\
                             }}]\
-                        }}'.format(lli_json,interface["name"]).split())
+                        }}'.format(lli_json,interface["name"],interface["mtu"]).split())
                     },
                 }
                 json_body = json.dumps(dict_body)
