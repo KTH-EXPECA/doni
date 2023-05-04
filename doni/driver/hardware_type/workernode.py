@@ -37,12 +37,27 @@ class WorkerNode(BaseHardwareType):
     default_fields = [
         WorkerField(
             "machine_name",
-            schema=args.enum(["k8s-worker"]),
+            schema=args.STRING,
             required=True,
-            default="k8s-worker",
-            description=(
-                "The type of device -- this must be an explicitly supported device type"
-            ),
+            description=("k8s registered name of the server"),
+        ),
+        WorkerField(
+            "device_name",
+            schema=args.STRING,
+            required=True,
+            description=("server full model"),
+        ),
+        WorkerField(
+            "vendor",
+            schema=args.STRING,
+            required=True,
+            description=("server vendor"),
+        ),
+        WorkerField(
+            "model",
+            schema=args.STRING,
+            required=True,
+            description=("server model"),
         ),
         WorkerField(
             "bm_interfaces",

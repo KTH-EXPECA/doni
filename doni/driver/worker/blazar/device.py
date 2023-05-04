@@ -39,17 +39,15 @@ class BlazarDeviceWorker(BaseBlazarWorker):
     @classmethod
     def expected_state(cls, hardware: "Hardware", device_dict: "dict") -> dict:
         hw_props = hardware.properties
-        machine_name = hw_props.get("machine_name")
-        machine_meta = MACHINE_METADATA.get(machine_name, {})
         device_dict.update(
             {
                 "uid": hardware.uuid,
                 "device_driver": hw_props.get("blazar_device_driver"),
                 "device_type": "container",
-                "machine_name": machine_name,
-                "device_name": machine_meta.get("full_name", UNKNOWN_DEVICE),
-                "vendor": machine_meta.get("vendor", UNKNOWN_DEVICE),
-                "model": machine_meta.get("model", UNKNOWN_DEVICE),
+                "machine_name": hw_props.get("machine_name"),
+                "device_name": hw_props.get("device_name"),
+                "vendor": hw_props.get("vendor"),
+                "model": hw_props.get("model"),
                 # This differentiates v1 devices (enrolled as Zun compute nodes) and v2
                 # devices (enrolled as k8s kubelets.)
                 "platform_version": "2",
